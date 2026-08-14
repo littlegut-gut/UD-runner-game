@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>奔跑小人 - 跑酷網頁遊戲</title>
+<title>UT Bu Dou - 跑酷網頁遊戲</title>
 <style>
   html,body{margin:0;height:100%;background:#04060c;display:flex;align-items:center;justify-content:center;
     touch-action:none;user-select:none;-webkit-user-select:none;overscroll-behavior:none;}
@@ -767,7 +767,7 @@ function draw(){
     ctx.textAlign='left';
   }
 
-  if(!started)overlay('🏃 奔跑小人','跳：空白/↑/點畫面｜滑：↓/S/雙指｜二段跳可｜M 音樂');
+  if(!started)overlay('🏃 Undet Bu-Dou Tale','跳：空白/↑/點畫面｜滑：↓/S/雙指｜二段跳可｜M 音樂');
   else if(gameOver)overlay('💥 遊戲結束',
     (newRec?'🎉 新紀錄！ ':'')+`分數 ${Math.floor(score)}｜紅心 ${coinsGot}｜最大連擊 ${comboMax}｜最高 ${best} — 點擊重新開始`);
 }
