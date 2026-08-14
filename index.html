@@ -436,8 +436,9 @@ function spawn(){
     if(okAw.length){
       const t=okAw[(Math.random()*okAw.length)|0];
       obstacles.push({type:'trap',img:t,x:ox,y:GROUND_Y-oh,w:ow,h:oh});
+      const base=110+Math.random()*40,gap=30+Math.random()*10,off=Math.random()*40-20;
       for(let k=-1;k<=1;k++)
-        coins.push({x:ox+ow/2+k*34,y:GROUND_Y-(k===0?140:115),r:12,taken:false,val:1,rare:false,img:null,coin:true});
+        coins.push({x:ox+ow/2+off+k*gap,y:GROUND_Y-(k===0?base+25:base),r:10+Math.random()*5,taken:false,val:1,rare:false,img:null,coin:true});
       sAward();
       return;
     }
@@ -453,7 +454,13 @@ function spawn(){
     ow=45;oh=30;
     obstacles.push({type:'spike',x:ox,y:GROUND_Y-oh,w:ow,h:oh});
   }
-  const c={x:ox+ow/2,y:GROUND_Y-115,r:12,taken:false,val:1,rare:false,img:null};
+    /* 心隨機化：低的輕跳、高的要滿跳，combo 靠實力 */
+  const c={
+    x:ox+ow/2+(Math.random()*60-30),
+    y:GROUND_Y-(100+Math.random()*65),
+    r:10+Math.random()*5,
+    taken:false,val:1,rare:false,img:null
+  };
   const okH=heartImgs.filter(i=>i.ok&&i.tex);
   if(okH.length){
     const t=okH[(Math.random()*okH.length)|0];
