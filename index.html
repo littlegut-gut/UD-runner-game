@@ -467,7 +467,9 @@ function spawn(){
   }
   /* 飛行蝙蝠 22%（要下滑！不配心） */
   if(Math.random()<.22){
-    obstacles.push({type:'bat',x:W+50,y:GROUND_Y-72,w:46,h:30});
+    /* 三隻青蝙蝠：低/中/高錯開 → 跳必撞，只能滑 */
+    obstacles.push({type:'bat',x:W+50,y:GROUND_Y-62,w:90,h:130,
+      bats:[{dx:10,dy:0},{dx:44,dy:-45},{dx:2,dy:-90}]});
     return;
   }
   const okTraps=trapImgs.filter(t=>t.ok&&t.tex);
@@ -483,7 +485,7 @@ function spawn(){
   }
   const c={
     x:ox+ow/2+(Math.random()*60-30),
-    y:GROUND_Y-(100+Math.random()*60),
+    y:GROUND_Y-(100+Math.random()*75),
     r:10+Math.random()*5,
     taken:false,val:1,rare:false,img:null
   };
@@ -547,24 +549,28 @@ function update(){
   coins=coins.filter(c=>!c.taken&&c.x>-60);
   const hb={x:player.x+6,y:player.y+4,w:player.w-12,h:player.h-8};
   for(const o of obstacles){
-    let b;
-    if(o.type==='trap')b={x:o.x+5,y:o.y+4,w:o.w-10,h:o.h-4};
-    else if(o.type==='bat')b={x:o.x+6,y:o.y+4,w:o.w-12,h:o.h-8};
-    else b=o;
-    if(rectHit(hb,b)&&!gameOver){
-      if(shield){   // 護盾抵一次
-        shield=false;o.x=-999;
-        spark(player.x+20,player.y+20,14,'#7fd4ff');
-        floatTxt(player.x+20,player.y-30,'🛡 BREAK!','#7fd4ff',true);
-        shake=8;sShield();
-      }else{
-        gameOver=true;
-        if(Math.floor(score)>best){best=Math.floor(score);localStorage.setItem('runner_best',best);newRec=true;}
-        puff(player.x+20,player.y+25,26,'#ff7755',4,2);
-        spark(player.x+20,player.y+25,14,'#ffd76a');
-        shake=14;flash=1;
-        try{navigator.vibrate&&navigator.vibrate(200);}catch(e){}
-        sDead();
+    const rects=[];
+    if(o.type==='bat'){
+      for(const bt of o.bats)rects.push({x:o.x+bt.dx+5,y:o.y+bt.dy+3,w:36,h:28});
+    }else if(o.type==='trap'){
+      rects.push({x:o.x+5,y:o.y+4,w:o.w-10,h:o.h-4});
+    }else rects.push(o);
+    for(const b of rects){
+      if(rectHit(hb,b)&&!gameOver){
+        if(shield){
+          shield=false;o.x=-999;
+          spark(player.x+20,player.y+20,14,'#7fd4ff');
+          floatTxt(player.x+20,player.y-30,'🛡 BREAK!','#7fd4ff',true);
+          shake=8;sShield();
+        }else{
+          gameOver=true;
+          if(Math.floor(score)>best){best=Math.floor(score);localStorage.setItem('runner_best',best);newRec=true;}
+          puff(player.x+20,player.y+25,26,'#ff7755',4,2);
+          spark(player.x+20,player.y+25,14,'#ffd76a');
+          shake=14;flash=1;
+          try{navigator.vibrate&&navigator.vibrate(200);}catch(e){}
+          sDead();
+        }
       }
     }
   }
@@ -601,19 +607,23 @@ function drawGold(c){
   ctx.shadowBlur=0;ctx.strokeStyle='#d9a416';ctx.lineWidth=3;ctx.stroke();ctx.restore();
 }
 function drawBat(o){
-  const flap=Math.sin(frame*.4+o.x*.1)*8;
-  const cx=o.x+o.w/2,cy=o.y+o.h/2;
-  ctx.fillStyle='#3b2a4a';
-  ctx.beginPath();ctx.moveTo(cx-6,cy);ctx.quadraticCurveTo(cx-26,cy-10-flap,cx-30,cy+4-flap);
-  ctx.quadraticCurveTo(cx-18,cy+6,cx-6,cy+6);ctx.closePath();ctx.fill();
-  ctx.beginPath();ctx.moveTo(cx+6,cy);ctx.quadraticCurveTo(cx+26,cy-10-flap,cx+30,cy+4-flap);
-  ctx.quadraticCurveTo(cx+18,cy+6,cx+6,cy+6);ctx.closePath();ctx.fill();
-  ctx.beginPath();ctx.ellipse(cx,cy,8,10,0,0,7);ctx.fill();
-  ctx.beginPath();ctx.moveTo(cx-6,cy-8);ctx.lineTo(cx-9,cy-16);ctx.lineTo(cx-2,cy-10);ctx.closePath();ctx.fill();
-  ctx.beginPath();ctx.moveTo(cx+6,cy-8);ctx.lineTo(cx+9,cy-16);ctx.lineTo(cx+2,cy-10);ctx.closePath();ctx.fill();
-  ctx.fillStyle='#ff5555';
-  ctx.beginPath();ctx.arc(cx-3,cy-3,1.8,0,7);ctx.fill();
-  ctx.beginPath();ctx.arc(cx+3,cy-3,1.8,0,7);ctx.fill();
+  for(let i=0;i<o.bats.length;i++){
+    const bt=o.bats[i];
+    const flap=Math.sin(frame*.4+i*2.1+o.x*.05)*8;
+    const cx=o.x+bt.dx+23,cy=o.y+bt.dy+15;
+    ctx.fillStyle='#17a2ae';   // 青翅膀
+    ctx.beginPath();ctx.moveTo(cx-6,cy);ctx.quadraticCurveTo(cx-26,cy-10-flap,cx-30,cy+4-flap);
+    ctx.quadraticCurveTo(cx-18,cy+6,cx-6,cy+6);ctx.closePath();ctx.fill();
+    ctx.beginPath();ctx.moveTo(cx+6,cy);ctx.quadraticCurveTo(cx+26,cy-10-flap,cx+30,cy+4-flap);
+    ctx.quadraticCurveTo(cx+18,cy+6,cx+6,cy+6);ctx.closePath();ctx.fill();
+    ctx.fillStyle='#2ec4c6';   // 青身體
+    ctx.beginPath();ctx.ellipse(cx,cy,8,10,0,0,7);ctx.fill();
+    ctx.beginPath();ctx.moveTo(cx-6,cy-8);ctx.lineTo(cx-9,cy-16);ctx.lineTo(cx-2,cy-10);ctx.closePath();ctx.fill();
+    ctx.beginPath();ctx.moveTo(cx+6,cy-8);ctx.lineTo(cx+9,cy-16);ctx.lineTo(cx+2,cy-10);ctx.closePath();ctx.fill();
+    ctx.fillStyle='#083a3d';
+    ctx.beginPath();ctx.arc(cx-3,cy-3,1.8,0,7);ctx.fill();
+    ctx.beginPath();ctx.arc(cx+3,cy-3,1.8,0,7);ctx.fill();
+  }
 }
 function drawPlayer(){
   const p=player;
