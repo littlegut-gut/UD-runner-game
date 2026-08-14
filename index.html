@@ -193,7 +193,7 @@ function loadImg(src){
   };
   im.src=src;return im;
 }
-/* 跑步 sprite sheet：自動切幀＋清地平線＋每幀正規化 */
+/* 跑步 sprite sheet：自動切幀＋清地平線＋全部幀正規化同一尺寸 */
 function loadSheet(src,n){
   const im=new Image();im.ok=false;im.frames=[];
   im.onerror=()=>console.log('❌ 載入失敗：'+src);
@@ -204,24 +204,32 @@ function loadSheet(src,n){
       const g=c.getContext('2d');g.drawImage(im,0,0);
       const d=g.getImageData(0,0,w,h);
       removeBG(d.data,w,h);
-      for(let y=Math.floor(h*.8);y<h;y++){
+      for(let y=Math.floor(h*.8);y<h;y++){          // 清底部全寬地平線
         let cnt=0;
         for(let x=0;x<w;x++)if(d.data[(y*w+x)*4+3]>0)cnt++;
         if(cnt>w*.9)for(let x=0;x<w;x++)d.data[(y*w+x)*4+3]=0;
       }
       g.putImageData(d,0,0);
       const fw=Math.floor(w/n);
+      const trims=[];
       for(let i=0;i<n;i++){
         const f=document.createElement('canvas');f.width=fw;f.height=h;
         f.getContext('2d').drawImage(c,i*fw,0,fw,h,0,0,fw,h);
-        im.frames.push(trimAlpha(f));
+        trims.push(trimAlpha(f));
+      }
+      /* 正規化：全部幀統一畫布大小（腳底對齊、水平置中） */
+      let mw=0,mh=0;
+      for(const t of trims){mw=Math.max(mw,t.width);mh=Math.max(mh,t.height);}
+      for(const t of trims){
+        const nc=document.createElement('canvas');nc.width=mw;nc.height=mh;
+        nc.getContext('2d').drawImage(t,Math.round((mw-t.width)/2),mh-t.height);
+        im.frames.push(nc);
       }
     }catch(e){}
     im.ok=im.frames.length>0;
   };
   im.src=src;return im;
 }
-
 /* ============ 素材 PNG（選用） ============ */
 const FLIP=false;
 const RUN_ANIM=true;
