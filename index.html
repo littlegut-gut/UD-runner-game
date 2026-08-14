@@ -270,7 +270,7 @@ function drawSprite(){
     }
   }
   const bounce=(p.onGround&&started&&!gameOver)?-Math.abs(Math.sin(runPhase*Math.PI/6))*2.5:0;
-  const h=p.h+8,w=h*(tex.width/tex.height||.8);
+  const h=p.h+7,w=h*(tex.width/tex.height||.8);
   ctx.save();
   if(FLIP){ctx.translate(p.x+p.w/2,0);ctx.scale(-1,1);ctx.translate(-(p.x+p.w/2),0);}
   const sy=1-squash,sx=1+squash;
