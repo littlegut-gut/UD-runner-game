@@ -5,7 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Under Bu Dou Tale - 跑酷網頁遊戲</title>
 <style>
-  html,body{margin:0;height:100%;background:#04060c;display:flex;align-items:center;justify-content:center;}
+    html,body{margin:0;height:100%;background:#04060c;display:flex;align-items:center;justify-content:center;
+    touch-action:none;user-select:none;-webkit-user-select:none;overscroll-behavior:none;}
   canvas{border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.6);touch-action:none;max-width:96vw;}
 </style>
 </head>
@@ -277,15 +278,16 @@ document.addEventListener('keydown',e=>{
   if(e.code==='Space'||e.code==='ArrowUp'){e.preventDefault();jump();}
   if(e.code==='KeyM')toggleBGM();
 });
-canvas.addEventListener('pointerdown',e=>{
+document.addEventListener('pointerdown',e=>{
   const r=canvas.getBoundingClientRect();
   const x=(e.clientX-r.left)*(W/r.width),y=(e.clientY-r.top)*(H/r.height);
-  if(x>W-60&&y<50){toggleBGM();return;}
+  /* 只有點到 canvas 右上角才是靜音鈕，其餘任何地方（含畫面外）都跳 */
+  if(x>=0&&x<=W&&y>=0&&y<50&&x>W-60){toggleBGM();return;}
   jump();
 });
 
 function spawn(){
-  let ox=W+50,ow=44,oh=44;
+  let ox=W+50,ow=60,oh=60;// 陷阱放大30%（視覺與判定同步）
   if(dist/PX_PER_M>=nextAwardM){
     nextAwardM=dist/PX_PER_M+AWARD_EVERY+Math.random()*100;
     const okAw=awImgs.filter(i=>i.ok&&i.tex);
