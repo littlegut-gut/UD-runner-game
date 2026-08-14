@@ -193,7 +193,38 @@ function loadImg(src){
   };
   im.src=src;return im;
 }
-/* 跑步 sprite sheet：自動切幀＋清地平線＋全部幀正規化同一尺寸 */
+
+/* 只保留最大連通塊（主角本體），刪除鄰幀越界的手/髮碎片 */
+function keepMain(c){
+  const g=c.getContext('2d');
+  const d=g.getImageData(0,0,c.width,c.height);
+  const a=d.data,w=c.width,h=c.height;
+  const seen=new Uint8Array(w*h);
+  const comps=[];let bestSize=0,bestStart=-1;
+  for(let s=0;s<w*h;s++){
+    if(seen[s]||a[s*4+3]===0)continue;
+    const comp=[s];seen[s]=1;let head=0;
+    while(head<comp.length){
+      const p=comp[head++],x=p%w,y=(p/w)|0;
+      for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){   // 8 連通，細髮絲不斷開
+        if(!dx&&!dy)continue;
+        const nx=x+dx,ny=y+dy;
+        if(nx<0||ny<0||nx>=w||ny>=h)continue;
+        const q=ny*w+nx;
+        if(!seen[q]&&a[q*4+3]>0){seen[q]=1;comp.push(q);}
+      }
+    }
+    comps.push(comp);
+    if(comp.length>bestSize){bestSize=comp.length;bestStart=comps.length-1;}
+  }
+  if(bestStart<0)return;
+  const keep=new Uint8Array(w*h);
+  for(const p of comps[bestStart])keep[p]=1;
+  for(let p=0;p<w*h;p++)if(a[p*4+3]>0&&!keep[p])a[p*4+3]=0;   // 碎片→透明
+  g.putImageData(d,0,0);
+}
+
+/* 跑步 sprite sheet：切幀→清地平線→去鄰幀碎片→正規化同尺寸 */
 function loadSheet(src,n){
   const im=new Image();im.ok=false;im.frames=[];
   im.onerror=()=>console.log('❌ 載入失敗：'+src);
@@ -204,7 +235,7 @@ function loadSheet(src,n){
       const g=c.getContext('2d');g.drawImage(im,0,0);
       const d=g.getImageData(0,0,w,h);
       removeBG(d.data,w,h);
-      for(let y=Math.floor(h*.8);y<h;y++){          // 清底部全寬地平線
+      for(let y=Math.floor(h*.8);y<h;y++){
         let cnt=0;
         for(let x=0;x<w;x++)if(d.data[(y*w+x)*4+3]>0)cnt++;
         if(cnt>w*.9)for(let x=0;x<w;x++)d.data[(y*w+x)*4+3]=0;
@@ -215,9 +246,9 @@ function loadSheet(src,n){
       for(let i=0;i<n;i++){
         const f=document.createElement('canvas');f.width=fw;f.height=h;
         f.getContext('2d').drawImage(c,i*fw,0,fw,h,0,0,fw,h);
+        keepMain(f);                 // ← 關鍵：刪除越界碎片
         trims.push(trimAlpha(f));
       }
-      /* 正規化：全部幀統一畫布大小（腳底對齊、水平置中） */
       let mw=0,mh=0;
       for(const t of trims){mw=Math.max(mw,t.width);mh=Math.max(mh,t.height);}
       for(const t of trims){
@@ -230,6 +261,7 @@ function loadSheet(src,n){
   };
   im.src=src;return im;
 }
+
 /* ============ 素材 PNG（選用） ============ */
 const FLIP=false;
 const RUN_ANIM=true;
