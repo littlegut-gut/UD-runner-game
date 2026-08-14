@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>奔跑小人 - 跑酷網頁遊戲</title>
+<title>UD Bu Bou - 跑酷網頁遊戲</title>
 <style>
   html,body{margin:0;height:100%;background:#04060c;display:flex;align-items:center;justify-content:center;
     touch-action:none;user-select:none;-webkit-user-select:none;overscroll-behavior:none;}
@@ -666,11 +666,11 @@ function draw(){
     ctx.textAlign='center';ctx.textBaseline='middle';
     ctx.fillStyle='#ffaa33';
     const mult=1+Math.min(4,Math.floor(combo/5));
-    ctx.fillText('COMBO ×'+combo+(mult>1?'  (x'+mult+')':''),W/2,72);
+    ctx.fillText('COMBO ×'+combo+(mult>1?'  (x'+mult+')':''),W/2,88);
     ctx.textAlign='left';
   }
 
-  if(!started)overlay('🏃 奔跑小人','按 空白鍵 / ↑ 或 點擊畫面 開始｜最高分 '+best+'｜M 鍵音樂開關');
+  if(!started)overlay('🏃 Under Bu Dou Tale','按 空白鍵 / ↑ 或 點擊畫面 開始｜最高分 '+best+'｜M 鍵音樂開關');
   else if(gameOver)overlay('💥 遊戲結束',
     (newRec?'🎉 新紀錄！ ':'')+`分數 ${Math.floor(score)}｜紅心 ${coinsGot}｜最大連擊 ${comboMax}｜最高 ${best} — 點擊重新開始`);
 }
