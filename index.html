@@ -3,9 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Under Bu Dou Tale - 跑酷網頁遊戲</title>
+<title>UD Bu Dou - 跑酷網頁遊戲</title>
 <style>
-    html,body{margin:0;height:100%;background:#04060c;display:flex;align-items:center;justify-content:center;
+  html,body{margin:0;height:100%;background:#04060c;display:flex;align-items:center;justify-content:center;
     touch-action:none;user-select:none;-webkit-user-select:none;overscroll-behavior:none;}
   canvas{border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.6);touch-action:none;max-width:96vw;}
 </style>
@@ -19,7 +19,7 @@ const PT=10;
 const SPEED_BASE=5,SPEED_STEP=0.5,SPEED_EVERY=250,PX_PER_M=10,MAX_SPEED=12;
 const AWARD_EVERY=1000;
 
-/* ============ 音效：WebAudio 合成 ============ */
+/* ============ 音效 ============ */
 let AC=null;
 function beep(f,d,type,vol,slide){
   try{
@@ -39,7 +39,7 @@ const sRare=()=>{beep(1100,.08,'sine',.22);setTimeout(()=>beep(1650,.14,'sine',.
 const sDead=()=>beep(220,.4,'sawtooth',.25,60);
 const sAward=()=>[660,880,1100].forEach((f,i)=>setTimeout(()=>beep(f,.12,'triangle',.2),i*90));
 
-/* ============ BGM：原創 Undertale 風格 chiptune 循環 ============ */
+/* ============ BGM ============ */
 let bgmOn=true,bgmTimer=null,bgmStarted=false;
 const BPM=96,BEAT=60/BPM;
 const LEAD=[
@@ -88,10 +88,58 @@ function toggleBGM(){
   return bgmOn;
 }
 
-/* ============ 最高分紀錄 ============ */
+/* ============ 最高分 ============ */
 let best=+localStorage.getItem('runner_best')||0,newRec=false;
 
-/* ============ PNG 載入：自動去背＋裁邊 ============ */
+/* ============ 手感包：粒子／飄字／震動／白閃／squash ============ */
+let parts=[],floats=[],shake=0,flash=0,squash=0;
+function puff(x,y,n,col,spd,up){
+  for(let i=0;i<n;i++){
+    const a=Math.random()*Math.PI*2,v=(spd||2)*(.4+Math.random()*.8);
+    parts.push({x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v-(up||1),g:.15,r:2+Math.random()*3,col,life:1,dec:.03+Math.random()*.03});
+  }
+}
+function spark(x,y,n,col){
+  for(let i=0;i<n;i++){
+    const a=Math.random()*Math.PI*2,v=1+Math.random()*3;
+    parts.push({x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v,g:.05,r:1.5+Math.random()*2,col,life:1,dec:.04+Math.random()*.03,star:true});
+  }
+}
+function floatTxt(x,y,txt,col,big){floats.push({x,y,txt,col:col||'#fff',big,life:1});}
+function updateFX(){
+  for(const p of parts){p.x+=p.vx;p.y+=p.vy;p.vy+=p.g;p.life-=p.dec;}
+  parts=parts.filter(p=>p.life>0);
+  for(const f of floats){f.y-=1.2;f.life-=.02;}
+  floats=floats.filter(f=>f.life>0);
+  shake*=.86;if(shake<.3)shake=0;
+  flash*=.85;if(flash<.02)flash=0;
+  squash*=.8;if(Math.abs(squash)<.02)squash=0;
+}
+function drawFX(){
+  for(const p of parts){
+    ctx.globalAlpha=Math.max(0,p.life);
+    ctx.fillStyle=p.col;
+    if(p.star){
+      ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.life*3);
+      ctx.fillRect(-p.r,-1,p.r*2,2);ctx.fillRect(-1,-p.r,2,p.r*2);
+      ctx.restore();
+    }else{
+      ctx.beginPath();ctx.arc(p.x,p.y,Math.max(.5,p.r*p.life),0,7);ctx.fill();
+    }
+  }
+  ctx.globalAlpha=1;
+  for(const f of floats){
+    ctx.globalAlpha=Math.max(0,f.life);
+    ctx.fillStyle=f.col;
+    ctx.font=(f.big?'bold 30px':'bold 20px')+' sans-serif';
+    ctx.textAlign='center';
+    ctx.fillText(f.txt,f.x,f.y);
+    ctx.textAlign='left';
+  }
+  ctx.globalAlpha=1;
+}
+
+/* ============ PNG 載入 ============ */
 function removeBG(data,w,h){
   const isBG=i=>{
     if(data[i+3]===0)return true;
@@ -144,7 +192,7 @@ function loadImg(src){
   im.src=src;return im;
 }
 
-/* ============ 素材 PNG（選用，缺檔自動 fallback） ============ */
+/* ============ 素材 PNG ============ */
 const FLIP=false;
 const runImgs=[loadImg('player_run1.png'),loadImg('player_run2.png')];
 const jumpImg=loadImg('player_jump.png');
@@ -172,6 +220,8 @@ function drawSprite(){
   const h=p.h+8,w=h*(tex.width/tex.height||.8);
   ctx.save();
   if(FLIP){ctx.translate(p.x+p.w/2,0);ctx.scale(-1,1);ctx.translate(-(p.x+p.w/2),0);}
+  const sy=1-squash,sx=1+squash;   // squash & stretch
+  ctx.translate(p.x+p.w/2,p.y+p.h);ctx.scale(sx,sy);ctx.translate(-(p.x+p.w/2),-(p.y+p.h));
   ctx.drawImage(tex,p.x+p.w/2-w/2,p.y+p.h-h+bounce,w,h);
   ctx.restore();
   return true;
@@ -272,7 +322,12 @@ reset();
 function jump(){
   if(gameOver){reset();started=true;return;}
   if(!started){started=true;if(bgmOn)startBGM();}
-  if(player.onGround){player.vy=-13;player.onGround=false;sJump();}
+  if(player.onGround){
+    player.vy=-13;player.onGround=false;
+    squash=-.35;                              // 起跳拉長
+    puff(player.x+20,GROUND_Y,6,'#cfd8dc',2,1);
+    sJump();
+  }
 }
 document.addEventListener('keydown',e=>{
   if(e.code==='Space'||e.code==='ArrowUp'){e.preventDefault();jump();}
@@ -281,13 +336,12 @@ document.addEventListener('keydown',e=>{
 document.addEventListener('pointerdown',e=>{
   const r=canvas.getBoundingClientRect();
   const x=(e.clientX-r.left)*(W/r.width),y=(e.clientY-r.top)*(H/r.height);
-  /* 只有點到 canvas 右上角才是靜音鈕，其餘任何地方（含畫面外）都跳 */
   if(x>=0&&x<=W&&y>=0&&y<50&&x>W-60){toggleBGM();return;}
   jump();
 });
 
 function spawn(){
-  let ox=W+50,ow=60,oh=60;// 陷阱放大30%（視覺與判定同步）
+  let ox=W+50,ow=57,oh=57;
   if(dist/PX_PER_M>=nextAwardM){
     nextAwardM=dist/PX_PER_M+AWARD_EVERY+Math.random()*100;
     const okAw=awImgs.filter(i=>i.ok&&i.tex);
@@ -327,14 +381,20 @@ function circleRectHit(c,r){
 
 function update(){
   frame++;
+  updateFX();
   const sp=(started&&!gameOver)?speed:1.2;
   farOff+=sp*.1;midOff+=sp*.5;groundOff+=sp;
   if(!started||gameOver)return;
   dist+=speed;
   speed=Math.min(MAX_SPEED,SPEED_BASE+Math.floor(dist/(SPEED_EVERY*PX_PER_M))*SPEED_STEP);
   score+=speed*0.02;
+  const wasGround=player.onGround;
   player.vy+=.7;player.y+=player.vy;
   if(player.y+player.h>=GROUND_Y){player.y=GROUND_Y-player.h;player.vy=0;player.onGround=true;}
+  if(!wasGround&&player.onGround){           // 落地：揚塵＋壓扁
+    puff(player.x+20,GROUND_Y,8,'#cfd8dc',2.5,1);
+    squash=.35;
+  }
   if(--spawnTimer<=0){
     spawn();
     spawnTimer=55+Math.random()*45;
@@ -349,6 +409,10 @@ function update(){
     if(rectHit(hb,b)&&!gameOver){
       gameOver=true;
       if(Math.floor(score)>best){best=Math.floor(score);localStorage.setItem('runner_best',best);newRec=true;}
+      puff(player.x+20,player.y+25,26,'#ff7755',4,2);   // 死亡爆炸
+      spark(player.x+20,player.y+25,14,'#ffd76a');
+      shake=14;flash=1;                                  // 震動＋白閃
+      try{navigator.vibrate&&navigator.vibrate(200);}catch(e){}
       sDead();
     }
   }
@@ -356,6 +420,8 @@ function update(){
     c.taken=true;
     coinsGot+=c.val;
     score+=c.val*PT;
+    spark(c.x,c.y,c.rare?16:10,c.rare?'#ffd76a':'#ff88aa');
+    floatTxt(c.x,c.y-18,'+'+c.val,c.rare?'#ffd76a':'#fff',c.rare);
     c.rare?sRare():sCoin();
   }
 }
@@ -375,6 +441,9 @@ function drawGold(c){
 function drawPlayer(){
   const p=player,bounce=(p.onGround&&started&&!gameOver)?Math.sin(frame*.3)*2:0;
   const x=p.x,y=p.y+bounce,leg=Math.sin(frame*.35)*6;
+  ctx.save();
+  const sy=1-squash,sx=1+squash;
+  ctx.translate(p.x+p.w/2,p.y+p.h);ctx.scale(sx,sy);ctx.translate(-(p.x+p.w/2),-(p.y+p.h));
   ctx.strokeStyle='#c62828';ctx.lineWidth=6;ctx.lineCap='round';
   ctx.beginPath();ctx.moveTo(x+14,y+p.h-6);ctx.lineTo(x+14+leg,y+p.h+2);ctx.stroke();
   ctx.beginPath();ctx.moveTo(x+26,y+p.h-6);ctx.lineTo(x+26-leg,y+p.h+2);ctx.stroke();
@@ -384,6 +453,7 @@ function drawPlayer(){
   ctx.fillStyle='#333';
   ctx.beginPath();ctx.arc(x+23,y+8,1.8,0,Math.PI*2);ctx.fill();
   ctx.beginPath();ctx.arc(x+28,y+8,1.8,0,Math.PI*2);ctx.fill();
+  ctx.restore();
 }
 function overlay(t1,t2){
   ctx.fillStyle='rgba(0,0,0,.45)';ctx.fillRect(0,0,W,H);
@@ -394,6 +464,9 @@ function overlay(t1,t2){
 }
 
 function draw(){
+  ctx.save();
+  if(shake>0)ctx.translate((Math.random()-.5)*shake,(Math.random()-.5)*shake);  // 螢幕震動
+
   ctx.fillStyle='#04060c';ctx.fillRect(0,0,W,BAND_TOP);
   const bands=['#2a1826','#1e2d2d','#205052','#2a6b6d'];
   for(let i=0;i<4;i++){
@@ -446,8 +519,12 @@ function draw(){
     }else drawGold(c);
   }
   if(!drawSprite())drawPlayer();
+  drawFX();   // 粒子＋飄字
+  ctx.restore();
 
-  /* 分數面板：自動寬度，數字再大也不超出 */
+  if(flash>0){ctx.fillStyle='rgba(255,255,255,'+flash.toFixed(3)+')';ctx.fillRect(0,0,W,H);}  // 白閃
+
+  /* 分數面板（自動寬度） */
   const icon=(coinIcon.ok&&coinIcon.tex)?coinIcon:heartImgs.find(i=>i.ok&&i.tex);
   ctx.font='bold 22px sans-serif';ctx.textBaseline='middle';
   const sTxt='Score: '+Math.floor(score);
@@ -465,7 +542,7 @@ function draw(){
   ctx.fillText(cTxt,x3,38);
   ctx.fillText(bTxt,x4,38);
   ctx.font='22px sans-serif';
-  ctx.fillText(bgmOn?'🔊':'🔇',W-42,30);
+  ctx.fillText(bgmOn?'🔊':'',W-42,30);
 
   if(!started)overlay('🏃 Under Bu Dou Tale','按 空白鍵 / ↑ 或 點擊畫面 開始｜最高分 '+best+'｜M 鍵音樂開關');
   else if(gameOver)overlay('💥 遊戲結束',
