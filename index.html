@@ -213,15 +213,31 @@ function drawSprite(){
   if(!player.onGround&&jumpImg.ok)img=jumpImg;
   else{
     const ok=runImgs.filter(i=>i.ok);
-    if(ok.length)img=ok[Math.floor(frame/8)%ok.length];
+    if(ok.length)img=ok[Math.floor(runPhase/6)%ok.length];   // 換幀跟速度連動
   }
   if(!img)return false;
-  const tex=img.tex,p=player,bounce=(p.onGround&&started&&!gameOver)?Math.sin(frame*.3)*2:0;
+  const tex=img.tex,p=player;
+  /* 接地陰影：跳越高越小 */
+  const airH=GROUND_Y-(p.y+p.h);
+  ctx.fillStyle='rgba(0,0,0,.35)';
+  ctx.beginPath();ctx.ellipse(p.x+p.w/2,GROUND_Y+8,Math.max(10,26-airH*.12),5,0,0,7);ctx.fill();
+  /* 高速殘影線 */
+  if(speed>8&&started&&!gameOver){
+    ctx.strokeStyle='rgba(255,255,255,.25)';ctx.lineWidth=2;
+    for(let i=0;i<3;i++){
+      const yy=p.y+10+i*14;
+      ctx.beginPath();ctx.moveTo(p.x-16-i*6,yy);ctx.lineTo(p.x-4-i*6,yy);ctx.stroke();
+    }
+  }
+  /* 每步彈跳 */
+  const bounce=(p.onGround&&started&&!gameOver)?-Math.abs(Math.sin(runPhase*Math.PI/6))*2.5:0;
   const h=p.h+8,w=h*(tex.width/tex.height||.8);
   ctx.save();
   if(FLIP){ctx.translate(p.x+p.w/2,0);ctx.scale(-1,1);ctx.translate(-(p.x+p.w/2),0);}
-  const sy=1-squash,sx=1+squash;   // squash & stretch
+  const sy=1-squash,sx=1+squash;
   ctx.translate(p.x+p.w/2,p.y+p.h);ctx.scale(sx,sy);ctx.translate(-(p.x+p.w/2),-(p.y+p.h));
+  const lean=Math.min(.1,(speed-SPEED_BASE)*.012);   // 越跑越前傾
+  ctx.translate(p.x+p.w/2,p.y+p.h);ctx.rotate(lean);ctx.translate(-(p.x+p.w/2),-(p.y+p.h));
   ctx.drawImage(tex,p.x+p.w/2-w/2,p.y+p.h-h+bounce,w,h);
   ctx.restore();
   return true;
@@ -310,10 +326,10 @@ function drawLayer(img,off){
 }
 
 /* ============ 遊戲本體 ============ */
-let player,obstacles,coins,speed,score,coinsGot,gameOver,started,spawnTimer,frame,farOff,midOff,groundOff,dist,nextAwardM;
+let player,obstacles,coins,speed,score,coinsGot,gameOver,started,spawnTimer,frame,farOff,midOff,groundOff,dist,nextAwardM,runPhase,lastStep;
 function reset(){
   player={x:120,y:GROUND_Y-50,w:40,h:50,vy:0,onGround:true};
-  obstacles=[];coins=[];
+  obstacles=[];coins=[];runPhase=0;lastStep=0;
   speed=SPEED_BASE;score=0;coinsGot=0;gameOver=false;started=false;spawnTimer=70;frame=0;
   farOff=0;midOff=0;groundOff=0;dist=0;nextAwardM=AWARD_EVERY;newRec=false;
 }
@@ -388,6 +404,12 @@ function update(){
   dist+=speed;
   speed=Math.min(MAX_SPEED,SPEED_BASE+Math.floor(dist/(SPEED_EVERY*PX_PER_M))*SPEED_STEP);
   score+=speed*0.02;
+  if(player.onGround)runPhase+=speed*.15;      // 步伐相位：速度越快換步越快
+  const stepIdx=Math.floor(runPhase/6)%2;
+  if(stepIdx!==lastStep){                      // 每換一步：腳後揚塵
+    lastStep=stepIdx;
+    puff(player.x+8,GROUND_Y,2,'#8fa3a8',1.5,.5);
+  }
   const wasGround=player.onGround;
   player.vy+=.7;player.y+=player.vy;
   if(player.y+player.h>=GROUND_Y){player.y=GROUND_Y-player.h;player.vy=0;player.onGround=true;}
@@ -439,14 +461,21 @@ function drawGold(c){
   ctx.shadowBlur=0;ctx.strokeStyle='#d9a416';ctx.lineWidth=3;ctx.stroke();ctx.restore();
 }
 function drawPlayer(){
-  const p=player,bounce=(p.onGround&&started&&!gameOver)?Math.sin(frame*.3)*2:0;
-  const x=p.x,y=p.y+bounce,leg=Math.sin(frame*.35)*6;
+  const p=player;
+  const bounce=(p.onGround&&started&&!gameOver)?-Math.abs(Math.sin(runPhase*Math.PI/6))*2.5:0;
+  const x=p.x,y=p.y+bounce,leg=Math.sin(runPhase)*8,arm=Math.sin(runPhase)*5;
+  const airH=GROUND_Y-(p.y+p.h);
+  ctx.fillStyle='rgba(0,0,0,.35)';
+  ctx.beginPath();ctx.ellipse(p.x+p.w/2,GROUND_Y+8,Math.max(10,26-airH*.12),5,0,0,7);ctx.fill();
   ctx.save();
   const sy=1-squash,sx=1+squash;
   ctx.translate(p.x+p.w/2,p.y+p.h);ctx.scale(sx,sy);ctx.translate(-(p.x+p.w/2),-(p.y+p.h));
   ctx.strokeStyle='#c62828';ctx.lineWidth=6;ctx.lineCap='round';
   ctx.beginPath();ctx.moveTo(x+14,y+p.h-6);ctx.lineTo(x+14+leg,y+p.h+2);ctx.stroke();
   ctx.beginPath();ctx.moveTo(x+26,y+p.h-6);ctx.lineTo(x+26-leg,y+p.h+2);ctx.stroke();
+  ctx.strokeStyle='#e53935';ctx.lineWidth=5;
+  ctx.beginPath();ctx.moveTo(x+10,y+20);ctx.lineTo(x+10-arm,y+30);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(x+30,y+20);ctx.lineTo(x+30+arm,y+30);ctx.stroke();
   ctx.fillStyle='#e53935';rr(x+4,y+16,32,26,8);ctx.fill();
   ctx.fillStyle='#ffd54f';ctx.fillRect(x+4,y+25,32,5);
   ctx.fillStyle='#ffe0c2';ctx.beginPath();ctx.arc(x+20,y+10,12,0,Math.PI*2);ctx.fill();
