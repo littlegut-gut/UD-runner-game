@@ -23,7 +23,7 @@ const AWARD_EVERY=1000;
 let AC=null;
 function beep(f,d,type,vol,slide){
   try{
-    AC=AC||new (window.AudioContext||window.webkitAudioContext());
+    AC=AC||new (window.AudioContext||window.webkitAudioContext)();
     const o=AC.createOscillator(),g=AC.createGain();
     o.type=type||'square';o.frequency.value=f;
     if(slide)o.frequency.exponentialRampToValueAtTime(slide,AC.currentTime+d);
@@ -92,7 +92,7 @@ function toggleBGM(){
 /* ============ 最高分 ============ */
 let best=+localStorage.getItem('runner_best')||0,newRec=false;
 
-/* ============ 手感包：粒子／飄字／震動／白閃／squash ============ */
+/* ============ 手感包 ============ */
 let parts=[],floats=[],shake=0,flash=0,squash=0;
 function puff(x,y,n,col,spd,up){
   for(let i=0;i<n;i++){
@@ -193,9 +193,39 @@ function loadImg(src){
   };
   im.src=src;return im;
 }
+/* 跑步 sprite sheet：自動切幀＋清地平線＋每幀正規化 */
+function loadSheet(src,n){
+  const im=new Image();im.ok=false;im.frames=[];
+  im.onerror=()=>console.log('❌ 載入失敗：'+src);
+  im.onload=()=>{
+    try{
+      const w=im.width,h=im.height;
+      const c=document.createElement('canvas');c.width=w;c.height=h;
+      const g=c.getContext('2d');g.drawImage(im,0,0);
+      const d=g.getImageData(0,0,w,h);
+      removeBG(d.data,w,h);
+      for(let y=Math.floor(h*.8);y<h;y++){
+        let cnt=0;
+        for(let x=0;x<w;x++)if(d.data[(y*w+x)*4+3]>0)cnt++;
+        if(cnt>w*.9)for(let x=0;x<w;x++)d.data[(y*w+x)*4+3]=0;
+      }
+      g.putImageData(d,0,0);
+      const fw=Math.floor(w/n);
+      for(let i=0;i<n;i++){
+        const f=document.createElement('canvas');f.width=fw;f.height=h;
+        f.getContext('2d').drawImage(c,i*fw,0,fw,h,0,0,fw,h);
+        im.frames.push(trimAlpha(f));
+      }
+    }catch(e){}
+    im.ok=im.frames.length>0;
+  };
+  im.src=src;return im;
+}
 
 /* ============ 素材 PNG（選用） ============ */
 const FLIP=false;
+const RUN_ANIM=true;
+const runSheet=loadSheet('player_sheet.png',4);   // 可愛 cool 女主四幀 sheet 優先
 const runImgs=[loadImg('player_run1.png'),loadImg('player_run2.png')];
 const jumpImg=loadImg('player_jump.png');
 const heartImgs=[
@@ -211,14 +241,16 @@ const coinIcon=loadImg('Coin.png');
 const awImgs=[loadImg('Award_1.png'),loadImg('Award_2.png')];
 
 function drawSprite(){
-  let img=null;
-  if(!player.onGround&&jumpImg.ok)img=jumpImg;
+  const p=player;
+  let tex=null;
+  if(!p.onGround&&jumpImg.ok)tex=jumpImg.tex;
+  else if(runSheet.ok&&runSheet.frames.length)
+    tex=runSheet.frames[Math.floor(runPhase/5)%runSheet.frames.length];
   else{
     const ok=runImgs.filter(i=>i.ok);
-    if(ok.length)img=ok[Math.floor(runPhase/6)%ok.length];
+    if(ok.length)tex=(RUN_ANIM?ok[Math.floor(runPhase/6)%ok.length]:ok[0]).tex;
   }
-  if(!img)return false;
-  const tex=img.tex,p=player;
+  if(!tex)return false;
   const airH=GROUND_Y-(p.y+p.h);
   ctx.fillStyle='rgba(0,0,0,.35)';
   ctx.beginPath();ctx.ellipse(p.x+p.w/2,GROUND_Y+8,Math.max(10,26-airH*.12),5,0,0,7);ctx.fill();
@@ -466,10 +498,11 @@ function drawGold(c){
   ctx.fillStyle='#ffcf3f';ctx.beginPath();ctx.arc(c.x,c.y,c.r,0,Math.PI*2);ctx.fill();
   ctx.shadowBlur=0;ctx.strokeStyle='#d9a416';ctx.lineWidth=3;ctx.stroke();ctx.restore();
 }
+/* 內建角色：固定手臂（持刀不晃） */
 function drawPlayer(){
   const p=player;
   const bounce=(p.onGround&&started&&!gameOver)?-Math.abs(Math.sin(runPhase*Math.PI/6))*2.5:0;
-  const x=p.x,y=p.y+bounce,leg=Math.sin(runPhase)*8,arm=Math.sin(runPhase)*5;
+  const x=p.x,y=p.y+bounce,leg=Math.sin(runPhase)*8;
   const airH=GROUND_Y-(p.y+p.h);
   ctx.fillStyle='rgba(0,0,0,.35)';
   ctx.beginPath();ctx.ellipse(p.x+p.w/2,GROUND_Y+8,Math.max(10,26-airH*.12),5,0,0,7);ctx.fill();
@@ -480,8 +513,8 @@ function drawPlayer(){
   ctx.beginPath();ctx.moveTo(x+14,y+p.h-6);ctx.lineTo(x+14+leg,y+p.h+2);ctx.stroke();
   ctx.beginPath();ctx.moveTo(x+26,y+p.h-6);ctx.lineTo(x+26-leg,y+p.h+2);ctx.stroke();
   ctx.strokeStyle='#e53935';ctx.lineWidth=5;
-  ctx.beginPath();ctx.moveTo(x+10,y+20);ctx.lineTo(x+10-arm,y+30);ctx.stroke();
-  ctx.beginPath();ctx.moveTo(x+30,y+20);ctx.lineTo(x+30+arm,y+30);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(x+10,y+20);ctx.lineTo(x+6,y+30);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(x+30,y+20);ctx.lineTo(x+34,y+30);ctx.stroke();
   ctx.fillStyle='#e53935';rr(x+4,y+16,32,26,8);ctx.fill();
   ctx.fillStyle='#ffd54f';ctx.fillRect(x+4,y+25,32,5);
   ctx.fillStyle='#ffe0c2';ctx.beginPath();ctx.arc(x+20,y+10,12,0,Math.PI*2);ctx.fill();
