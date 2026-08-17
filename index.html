@@ -46,8 +46,10 @@ const sCombo=n=>{const f=800+Math.min(n,12)*50;beep(f,.07,'sine',.2);setTimeout(
 const sItem=()=>[520,780,1040].forEach((f,i)=>setTimeout(()=>beep(f,.1,'triangle',.22),i*80));
 const sShield=()=>beep(180,.25,'square',.25,90);
 
-/* ============ BGM ============ */
+/* ============ BGM：bgm.mp3 優先，缺檔自動回原創合成 ============ */
 let bgmOn=true,bgmTimer=null,bgmStarted=false;
+const bgmAudio=new Audio('bgm.mp3');
+bgmAudio.loop=true;bgmAudio.volume=.35;   // 循環播放＋不蓋過音效
 const BPM=96,BEAT=60/BPM;
 const LEAD=[
  [440,1],[523.25,1],[659.25,1],[587.33,1],
@@ -87,11 +89,16 @@ function scheduleLoop(){
   const len=LEAD.reduce((s,n)=>s+n[1],0)*BEAT;
   bgmTimer=setTimeout(scheduleLoop,(len-.15)*1000);
 }
-function startBGM(){if(!bgmStarted){bgmStarted=true;scheduleLoop();}}
+function startBGM(){
+  if(bgmStarted)return;
+  bgmStarted=true;
+  if(bgmAudio.readyState>=2)bgmAudio.play().catch(()=>scheduleLoop());
+  else scheduleLoop();
+}
 function toggleBGM(){
   bgmOn=!bgmOn;
   if(bgmOn)startBGM();
-  else{clearTimeout(bgmTimer);bgmStarted=false;}
+  else{bgmAudio.pause();clearTimeout(bgmTimer);bgmStarted=false;}
   return bgmOn;
 }
 
