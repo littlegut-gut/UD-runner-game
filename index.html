@@ -269,6 +269,7 @@ const RUN_ANIM=true;
 const runSheet=loadSheet('player_sheet.png',4);
 const runImgs=[loadImg('player_run1.png'),loadImg('player_run2.png')];
 const jumpImg=loadImg('player_jump.png');
+const slideImg=loadImg('player_slide.png');
 const heartImgs=[
   Object.assign(loadImg('B_heart.png'),{val:1,rare:false}),
   Object.assign(loadImg('G_heart.png'),{val:1,rare:false}),
@@ -283,8 +284,10 @@ const awImgs=[loadImg('Award_1.png'),loadImg('Award_2.png')];
 
 function drawSprite(){
   const p=player;
+  const isSlide=slideTimer>0;
   let tex=null;
   if(!p.onGround&&jumpImg.ok)tex=jumpImg.tex;
+  else if(isSlide&&slideImg.ok&&slideImg.tex)tex=slideImg.tex;   // 下滑圖優先
   else if(runSheet.ok&&runSheet.frames.length)
     tex=runSheet.frames[Math.floor(runPhase/5)%runSheet.frames.length];
   else{
@@ -302,12 +305,13 @@ function drawSprite(){
       ctx.beginPath();ctx.moveTo(p.x-16-i*6,yy);ctx.lineTo(p.x-4-i*6,yy);ctx.stroke();
     }
   }
-  const bounce=(p.onGround&&started&&!gameOver)?-Math.abs(Math.sin(runPhase*Math.PI/6))*2.5:0;
-  const h=p.h+8,w=h*(tex.width/tex.height||.8);
+  const bounce=(p.onGround&&started&&!gameOver&&!isSlide)?-Math.abs(Math.sin(runPhase*Math.PI/6))*2.5:0;
+  const usingSlide=(tex===slideImg.tex);
+  const h=usingSlide?42:p.h+8,w=h*(tex.width/tex.height||.8);   // 下滑圖固定 42 高、不壓扁
   ctx.save();
   if(FLIP){ctx.translate(p.x+p.w/2,0);ctx.scale(-1,1);ctx.translate(-(p.x+p.w/2),0);}
   let sy=1-squash,sx=1+squash;
-  if(slideTimer>0){sy*=.55;sx*=1.3;}   // 下滑壓扁
+  if(isSlide&&!usingSlide){sy*=.55;sx*=1.3;}   // 沒有下滑圖時才用壓扁 fallback
   ctx.translate(p.x+p.w/2,p.y+p.h);ctx.scale(sx,sy);ctx.translate(-(p.x+p.w/2),-(p.y+p.h));
   const lean=Math.min(.1,(speed-SPEED_BASE)*.012);
   ctx.translate(p.x+p.w/2,p.y+p.h);ctx.rotate(lean);ctx.translate(-(p.x+p.w/2),-(p.y+p.h));
