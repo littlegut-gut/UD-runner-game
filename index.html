@@ -19,6 +19,7 @@ const W=canvas.width,H=canvas.height,GROUND_Y=H-60,BAND_TOP=Math.round(H*.7);
 const PT=10;
 const SPEED_BASE=5,SPEED_STEP=0.5,SPEED_EVERY=250,PX_PER_M=10,MAX_SPEED=16; // 上限16：可視0.81s仍大於反應時間
 const AWARD_EVERY=500,SLIDE_TIME=32;   // 每500米獎勵關
+const AWARD_COINS=true;   // true＝獎勵障礙上方一定有金幣
 
 /* ============ 音效 ============ */
 let AC=null;
@@ -458,19 +459,26 @@ function spawn(){
   if(dist/PX_PER_M>=nextAwardM){
     const m=nextAwardM;
     nextAwardM=dist/PX_PER_M+AWARD_EVERY+Math.random()*100;
+    const aw=Math.round(57*1.4);
     const okAw=awImgs.filter(i=>i.ok&&i.tex);
     if(okAw.length){
       const t=okAw[(Math.random()*okAw.length)|0];
-      const aw=Math.round(57*1.4);
       obstacles.push({type:'trap',img:t,x:ox,y:GROUND_Y-aw,w:aw,h:aw});
-      const n=(Math.round(m/500)%2===0)?3:2;   // 1000的倍數→3顆
+    }else{
+      /* 沒圖也照出獎勵障礙（木箱外觀），金幣不缺席 */
+      obstacles.push({type:'box',x:ox,y:GROUND_Y-aw,w:aw,h:aw});
+    }
+    if(AWARD_COINS){
+      const n=(Math.round(m/500)%2===0)?3:2;   // 500m→2顆、1000m→3顆
       const base=110+Math.random()*40,gap=30+Math.random()*10;
       for(let k=0;k<n;k++)
         coins.push({x:ox+aw/2+(k-(n-1)/2)*gap,y:GROUND_Y-(n===3&&k===1?base+25:base),
           r:10+Math.random()*5,taken:false,val:1,rare:false,img:null,coin:true});
-      sAward();
-      return;
     }
+    sAward();
+    return;
+  }
+
   }
   /* 飛行蝙蝠（只能滑） */
   if(Math.random()<.22){
