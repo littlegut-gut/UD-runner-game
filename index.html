@@ -3,11 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>UT Bu Dou - 跑酷網頁遊戲</title>
+<title>奔跑小人 - 跑酷網頁遊戲</title>
 <style>
   html,body{margin:0;height:100%;background:#04060c;display:flex;align-items:center;justify-content:center;
     touch-action:none;user-select:none;-webkit-user-select:none;overscroll-behavior:none;}
-    canvas{border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.6);touch-action:none;
+  canvas{border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.6);touch-action:none;
     width:min(900px,96vw,207vh);height:auto;}
 </style>
 </head>
@@ -17,9 +17,9 @@
 const canvas=document.getElementById('game'),ctx=canvas.getContext('2d');
 const W=canvas.width,H=canvas.height,GROUND_Y=H-60,BAND_TOP=Math.round(H*.7);
 const PT=10;
-const SPEED_BASE=5,SPEED_STEP=0.5,SPEED_EVERY=250,PX_PER_M=10,MAX_SPEED=16; // 上限16：可視0.81s仍大於反應時間
-const AWARD_EVERY=500,SLIDE_TIME=32;   // 每500米獎勵關
-const AWARD_COINS=true;   // true＝獎勵障礙上方一定有金幣
+const SPEED_BASE=5,SPEED_STEP=0.5,SPEED_EVERY=250,PX_PER_M=10,MAX_SPEED=16;
+const AWARD_EVERY=500,SLIDE_TIME=32,AWARD_COINS=true;
+const SHARE_BTN={x:W/2-90,y:H/2+52,w:180,h:44};
 
 /* ============ 音效 ============ */
 let AC=null;
@@ -46,10 +46,10 @@ const sCombo=n=>{const f=800+Math.min(n,12)*50;beep(f,.07,'sine',.2);setTimeout(
 const sItem=()=>[520,780,1040].forEach((f,i)=>setTimeout(()=>beep(f,.1,'triangle',.22),i*80));
 const sShield=()=>beep(180,.25,'square',.25,90);
 
-/* ============ BGM：bgm.mp3 優先，缺檔自動回原創合成 ============ */
+/* ============ BGM：bgm.mp3 優先，缺檔回原創合成 ============ */
 let bgmOn=true,bgmTimer=null,bgmStarted=false;
 const bgmAudio=new Audio('bgm.mp3');
-bgmAudio.loop=true;bgmAudio.volume=.35;   // 循環播放＋不蓋過音效
+bgmAudio.loop=true;bgmAudio.volume=.35;
 const BPM=96,BEAT=60/BPM;
 const LEAD=[
  [440,1],[523.25,1],[659.25,1],[587.33,1],
@@ -295,7 +295,7 @@ function drawSprite(){
   const isSlide=slideTimer>0;
   let tex=null;
   if(!p.onGround&&jumpImg.ok)tex=jumpImg.tex;
-  else if(isSlide&&slideImg.ok&&slideImg.tex)tex=slideImg.tex;   // 下滑圖優先
+  else if(isSlide&&slideImg.ok&&slideImg.tex)tex=slideImg.tex;
   else if(runSheet.ok&&runSheet.frames.length)
     tex=runSheet.frames[Math.floor(runPhase/5)%runSheet.frames.length];
   else{
@@ -315,11 +315,11 @@ function drawSprite(){
   }
   const bounce=(p.onGround&&started&&!gameOver&&!isSlide)?-Math.abs(Math.sin(runPhase*Math.PI/6))*2.5:0;
   const usingSlide=(tex===slideImg.tex);
-  const h=usingSlide?42:p.h+8,w=h*(tex.width/tex.height||.8);   // 下滑圖固定 42 高、不壓扁
+  const h=usingSlide?42:p.h+8,w=h*(tex.width/tex.height||.8);
   ctx.save();
   if(FLIP){ctx.translate(p.x+p.w/2,0);ctx.scale(-1,1);ctx.translate(-(p.x+p.w/2),0);}
   let sy=1-squash,sx=1+squash;
-  if(isSlide&&!usingSlide){sy*=.55;sx*=1.3;}   // 沒有下滑圖時才用壓扁 fallback
+  if(isSlide&&!usingSlide){sy*=.55;sx*=1.3;}
   ctx.translate(p.x+p.w/2,p.y+p.h);ctx.scale(sx,sy);ctx.translate(-(p.x+p.w/2),-(p.y+p.h));
   const lean=Math.min(.1,(speed-SPEED_BASE)*.012);
   ctx.translate(p.x+p.w/2,p.y+p.h);ctx.rotate(lean);ctx.translate(-(p.x+p.w/2),-(p.y+p.h));
@@ -334,471 +334,4 @@ function layerCanvas(w,fn){
   const c=document.createElement('canvas');c.width=w;c.height=H;
   fn(c.getContext('2d'));return c;
 }
-function tri(g,cx,by,w,h){g.beginPath();g.moveTo(cx-w,by);g.lineTo(cx,by-h);g.lineTo(cx+w,by);g.closePath();g.fill();}
-function castle(g,x,by){
-  const u=4;
-  g.fillStyle='#3a4a56';g.fillRect(x-18*u,by-2*u,36*u,2*u);
-  g.fillStyle='#8fa3b5';
-  g.fillRect(x-10*u,by-16*u,20*u,14*u);
-  g.fillRect(x-16*u,by-12*u,6*u,10*u);
-  g.fillRect(x+10*u,by-12*u,6*u,10*u);
-  g.fillRect(x-4*u,by-24*u,8*u,22*u);
-  g.fillStyle='#35a8e8';
-  tri(g,x-13*u,by-12*u,3.5*u,7*u);
-  tri(g,x+13*u,by-12*u,3.5*u,7*u);
-  tri(g,x,by-24*u,4.5*u,9*u);
-  tri(g,x-9*u,by-16*u,2*u,4*u);
-  tri(g,x+9*u,by-16*u,2*u,4*u);
-  g.fillStyle='#16222c';
-  g.fillRect(x-2*u,by-6*u,4*u,6*u);
-  g.beginPath();g.arc(x,by-6*u,2*u,Math.PI,0);g.fill();
-  g.fillRect(x-7*u,by-13*u,2*u,3*u);
-  g.fillRect(x+5*u,by-13*u,2*u,3*u);
-  g.fillRect(x-1*u,by-20*u,2*u,3*u);
-}
-function statue(g,x,by,s){
-  g.fillRect(x-20*s,by-58*s,40*s,58*s);
-  g.fillRect(x-25*s,by-66*s,50*s,10*s);
-  g.beginPath();g.arc(x,by-66*s,15*s,Math.PI,0);g.fill();
-  g.beginPath();g.moveTo(x-8*s,by-74*s);g.quadraticCurveTo(x-22*s,by-84*s,x-20*s,by-102*s);
-  g.quadraticCurveTo(x-12*s,by-88*s,x-2*s,by-82*s);g.closePath();g.fill();
-  g.beginPath();g.moveTo(x+8*s,by-74*s);g.quadraticCurveTo(x+22*s,by-84*s,x+20*s,by-102*s);
-  g.quadraticCurveTo(x+12*s,by-88*s,x+2*s,by-82*s);g.closePath();g.fill();
-}
-function figure(g,x,by,s,t){
-  g.save();g.translate(x,by);g.scale(s,s);
-  if(t===0){g.fillRect(-4,-18,3,18);g.fillRect(2,-18,3,18);g.fillRect(-5,-38,10,20);
-    g.fillRect(-8,-36,3,12);g.fillRect(5,-36,3,12);
-    g.beginPath();g.arc(0,-43,6,0,7);g.fill();
-    g.beginPath();g.ellipse(0,-48,13,3,0,0,7);g.fill();
-    g.beginPath();g.moveTo(-7,-49);g.lineTo(7,-49);g.lineTo(4,-62);
-    g.quadraticCurveTo(2,-68,-8,-71);g.quadraticCurveTo(-3,-62,-7,-49);g.closePath();g.fill();
-  }else if(t===1){g.beginPath();g.arc(0,-11,11,Math.PI,0);g.fill();g.fillRect(-11,-11,22,11);
-  }else if(t===2){g.fillRect(-4,-8,3,8);g.fillRect(1,-8,3,8);g.fillRect(-5,-20,10,12);
-    g.beginPath();g.arc(0,-27,8,0,7);g.fill();g.fillRect(-1,-36,2,5);
-    g.beginPath();g.arc(0,-37,2.5,0,7);g.fill();
-  }else if(t===3){g.fillRect(-4,-8,3,8);g.fillRect(1,-8,3,8);g.fillRect(-4,-20,8,12);
-    g.beginPath();g.arc(0,-28,9,0,7);g.fill();
-    g.beginPath();g.moveTo(-9,-28);g.lineTo(-11,-20);g.lineTo(11,-20);g.lineTo(9,-28);g.closePath();g.fill();
-  }else if(t===4){g.fillRect(-4,-8,3,8);g.fillRect(1,-8,3,8);g.fillRect(-5,-18,10,10);
-    g.beginPath();g.arc(0,-25,7,0,7);g.fill();
-  }else if(t===5){g.fillRect(-6,-12,5,12);g.fillRect(1,-12,5,12);g.fillRect(-8,-30,16,18);
-    g.beginPath();g.arc(0,-38,9,0,7);g.fill();
-    g.beginPath();g.moveTo(-6,-44);g.lineTo(-10,-57);g.lineTo(-1,-47);g.closePath();g.fill();
-    g.beginPath();g.moveTo(6,-44);g.lineTo(10,-57);g.lineTo(1,-47);g.closePath();g.fill();
-  }else if(t===6){g.fillRect(-5,-4,4,4);g.fillRect(1,-4,4,4);g.fillRect(-7,-11,14,8);
-    g.beginPath();g.arc(0,-17,8,0,7);g.fill();
-  }else{g.fillRect(-7,-16,5,16);g.fillRect(2,-16,5,16);g.fillRect(-9,-32,18,16);
-    g.fillRect(-13,-32,4,14);g.fillRect(9,-32,4,14);g.fillRect(-7,-46,14,12);
-    g.fillRect(-1,-52,2,6);g.beginPath();g.arc(0,-53,2.5,0,7);g.fill();}
-  g.restore();
-}
-const farLayer=layerCanvas(1400,g=>{castle(g,700,BAND_TOP+8);});
-const midLayer=layerCanvas(1400,g=>{
-  g.fillStyle='#0a0e0f';
-  statue(g,300,GROUND_Y,1);
-  [[80,1.15,0],[200,1,1],[400,1,2],[480,1.05,3],[560,.95,4],
-   [700,1.2,5],[860,.95,6],[1010,1.1,7],[1240,1,4]]
-  .forEach(a=>figure(g,a[0],GROUND_Y,a[1],a[2]));
-});
-const groundLayer=layerCanvas(600,g=>{
-  g.fillStyle='#162223';
-  [[30,14],[140,26],[255,18],[370,30],[480,12],[560,24]].forEach(a=>g.fillRect(a[0],GROUND_Y+a[1],26,4));
-});
-function drawLayer(img,off){
-  const w=img.width,x=-(off%w);
-  ctx.drawImage(img,x,0);ctx.drawImage(img,x+w,0);
-}
-
-/* ============ 遊戲本體 ============ */
-let player,obstacles,coins,speed,score,coinsGot,gameOver,started,spawnTimer,frame,farOff,midOff,groundOff,dist,nextAwardM,runPhase,lastStep,combo,comboMax,comboFlash;
-let shield,magnetT,slideTimer,pendingSlide,jumps;
-function reset(){
-  player={x:120,y:GROUND_Y-50,w:40,h:50,vy:0,onGround:true};
-  obstacles=[];coins=[];
-  speed=SPEED_BASE;score=0;coinsGot=0;gameOver=false;started=false;spawnTimer=70;frame=0;
-  farOff=0;midOff=0;groundOff=0;dist=0;nextAwardM=AWARD_EVERY;newRec=false;
-  runPhase=0;lastStep=0;combo=0;comboMax=0;comboFlash=0;
-  shield=false;magnetT=0;slideTimer=0;pendingSlide=false;jumps=0;
-}
-reset();
-
-function endSlide(){
-  if(slideTimer>0){slideTimer=0;if(player.onGround){player.h=50;player.y=GROUND_Y-50;}}
-}
-function jump(){
-  if(gameOver){reset();started=true;return;}
-  if(!started){started=true;if(bgmOn)startBGM();}
-  endSlide();
-  if(player.onGround){
-    player.vy=-13;player.onGround=false;jumps=1;
-    squash=-.35;puff(player.x+20,GROUND_Y,6,'#cfd8dc',2,1);sJump();
-  }else if(jumps<2){   // 二段跳
-    player.vy=-11;jumps=2;
-    squash=-.3;spark(player.x+20,player.y+player.h,8,'#9fd4ff');sJump2();
-  }
-}
-function slide(){
-  if(!started||gameOver)return;
-  if(player.onGround){
-    if(slideTimer<=0){
-      slideTimer=SLIDE_TIME;player.h=26;player.y=GROUND_Y-26;
-      puff(player.x+20,GROUND_Y,6,'#cfd8dc',2,1);sSlide();
-    }
-  }else{player.vy=Math.max(player.vy,14);pendingSlide=true;}  // 空中→俯衝落地滑
-}
-document.addEventListener('keydown',e=>{
-  if(e.code==='Space'||e.code==='ArrowUp'){e.preventDefault();jump();}
-  if(e.code==='ArrowDown'||e.code==='KeyS'){e.preventDefault();slide();}
-  if(e.code==='KeyM')toggleBGM();
-});
-document.addEventListener('pointerdown',e=>{
-  const r=canvas.getBoundingClientRect();
-  const x=(e.clientX-r.left)*(W/r.width),y=(e.clientY-r.top)*(H/r.height);
-  if(x>=0&&x<=W&&y>=0&&y<50&&x>W-60){toggleBGM();return;}
-  if(!e.isPrimary){slide();return;}   // 第二根手指＝下滑
-  jump();
-});
-
-function spawn(){
-  let ox=W+50,ow=57,oh=57;
-  /* 獎勵關：每500米；500m→2金幣、1000m→3金幣；Award放大40%；不混道具 */
-  if(dist/PX_PER_M>=nextAwardM){
-    const m=nextAwardM;
-    nextAwardM=dist/PX_PER_M+AWARD_EVERY+Math.random()*100;
-    const aw=Math.round(57*1.4);
-    const okAw=awImgs.filter(i=>i.ok&&i.tex);
-    if(okAw.length){
-      const t=okAw[(Math.random()*okAw.length)|0];
-      obstacles.push({type:'trap',img:t,x:ox,y:GROUND_Y-aw,w:aw,h:aw});
-    }else{
-      /* 沒圖也照出獎勵障礙（木箱外觀），金幣不缺席 */
-      obstacles.push({type:'box',x:ox,y:GROUND_Y-aw,w:aw,h:aw});
-    }
-    if(AWARD_COINS){
-      const n=(Math.round(m/500)%2===0)?3:2;   // 500m→2顆、1000m→3顆
-      const base=110+Math.random()*40,gap=30+Math.random()*10;
-      for(let k=0;k<n;k++)
-        coins.push({x:ox+aw/2+(k-(n-1)/2)*gap,y:GROUND_Y-(n===3&&k===1?base+25:base),
-          r:10+Math.random()*5,taken:false,val:1,rare:false,img:null,coin:true});
-    }
-    sAward();
-    return;
-  }
-
-  }
-  /* 飛行蝙蝠（只能滑） */
-  if(Math.random()<.22){
-    obstacles.push({type:'bat',x:W+50,y:GROUND_Y-62,w:90,h:130,
-      bats:[{dx:10,dy:0},{dx:44,dy:-45},{dx:2,dy:-90}]});
-    return;
-  }
-  /* 一般障礙 */
-  const okTraps=trapImgs.filter(t=>t.ok&&t.tex);
-  if(okTraps.length){
-    const t=okTraps[(Math.random()*okTraps.length)|0];
-    obstacles.push({type:'trap',img:t,x:ox,y:GROUND_Y-oh,w:ow,h:oh});
-  }else if(Math.random()<.5){
-    ow=40;oh=40;
-    obstacles.push({type:'box',x:ox,y:GROUND_Y-oh,w:ow,h:oh});
-  }else{
-    ow=45;oh=30;
-    obstacles.push({type:'spike',x:ox,y:GROUND_Y-oh,w:ow,h:oh});
-  }
-  /* 障礙上方「只有一種」 pickup：心70% / 護盾15% / 磁鐵15% */
-  const px=ox+ow/2+(Math.random()*60-30),py=GROUND_Y-(100+Math.random()*60);
-  const roll=Math.random();
-  if(roll<.15){
-    coins.push({x:px,y:py,r:14,taken:false,val:0,rare:false,img:null,kind:'item',itemType:'shield'});
-  }else if(roll<.30){
-    coins.push({x:px,y:py,r:14,taken:false,val:0,rare:false,img:null,kind:'item',itemType:'magnet'});
-  }else{
-    const c={x:px,y:py,r:10+Math.random()*5,taken:false,val:1,rare:false,img:null};
-    const okH=heartImgs.filter(i=>i.ok&&i.tex);
-    if(okH.length){
-      const t=okH[(Math.random()*okH.length)|0];
-      c.img=t;c.val=t.val;c.rare=t.rare;
-    }
-    coins.push(c);
-  }
-}
-
-function rectHit(a,b){return a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y;}
-function circleRectHit(c,r){
-  const cx=Math.max(r.x,Math.min(c.x,r.x+r.w)),cy=Math.max(r.y,Math.min(c.y,r.y+r.h));
-  return (c.x-cx)**2+(c.y-cy)**2<c.r*c.r;
-}
-
-function update(){
-  frame++;
-  updateFX();
-  const sp=(started&&!gameOver)?speed:1.2;
-  farOff+=sp*.1;midOff+=sp*.5;groundOff+=sp;
-  if(!started||gameOver)return;
-  dist+=speed;
-  speed=Math.min(MAX_SPEED,SPEED_BASE+Math.floor(dist/(SPEED_EVERY*PX_PER_M))*SPEED_STEP);
-  score+=speed*0.02;
-  if(player.onGround)runPhase+=speed*.15;
-  const stepIdx=Math.floor(runPhase/6)%2;
-  if(stepIdx!==lastStep){
-    lastStep=stepIdx;
-    puff(player.x+8,GROUND_Y,2,'#8fa3a8',1.5,.5);
-  }
-  const wasGround=player.onGround;
-  player.vy+=.7;player.y+=player.vy;
-  if(player.y+player.h>=GROUND_Y){player.y=GROUND_Y-player.h;player.vy=0;player.onGround=true;}
-  if(!wasGround&&player.onGround){
-    jumps=0;
-    puff(player.x+20,GROUND_Y,8,'#cfd8dc',2.5,1);
-    squash=.35;
-    if(pendingSlide){pendingSlide=false;slideTimer=SLIDE_TIME;player.h=26;player.y=GROUND_Y-26;}
-  }
-  if(slideTimer>0){
-    slideTimer--;
-    if(frame%4===0)puff(player.x+6,GROUND_Y,2,'#9fb3b8',1.5,.5);
-    if(slideTimer===0&&player.onGround){player.h=50;player.y=GROUND_Y-50;}
-  }
-  if(--spawnTimer<=0){
-    spawn();
-    spawnTimer=55+Math.random()*45;
-  }
-  for(const o of obstacles)o.x-=speed;
-  obstacles=obstacles.filter(o=>o.x+o.w>-60);
-  for(const c of coins)c.x-=speed;
-  /* 磁鐵：心與道具自動飛來 */
-  if(magnetT>0){
-    magnetT--;
-    for(const c of coins)if(!c.taken){c.x+=(player.x+20-c.x)*.1;c.y+=(player.y+10-c.y)*.1;}
-  }
-  let missed=false;
-  for(const c of coins)if(!c.taken&&c.kind!=='item'&&c.x+c.r<0)missed=true;
-  if(missed&&combo>0){combo=0;floatTxt(player.x+20,player.y-30,'COMBO LOST','#9fb3b8',false);}
-  coins=coins.filter(c=>!c.taken&&c.x>-60);
-  const hb={x:player.x+6,y:player.y+4,w:player.w-12,h:player.h-8};
-  for(const o of obstacles){
-    const rects=[];
-    if(o.type==='bat'){
-      for(const bt of o.bats)rects.push({x:o.x+bt.dx+5,y:o.y+bt.dy+3,w:36,h:28});
-    }else if(o.type==='trap'){
-      rects.push({x:o.x+5,y:o.y+4,w:o.w-10,h:o.h-4});
-    }else rects.push(o);
-    for(const b of rects){
-      if(rectHit(hb,b)&&!gameOver){
-        if(shield){
-          shield=false;o.x=-999;
-          spark(player.x+20,player.y+20,14,'#7fd4ff');
-          floatTxt(player.x+20,player.y-30,'🛡 BREAK!','#7fd4ff',true);
-          shake=8;sShield();
-        }else{
-          gameOver=true;
-          if(Math.floor(score)>best){best=Math.floor(score);localStorage.setItem('runner_best',best);newRec=true;}
-          puff(player.x+20,player.y+25,26,'#ff7755',4,2);
-          spark(player.x+20,player.y+25,14,'#ffd76a');
-          shake=14;flash=1;
-          try{navigator.vibrate&&navigator.vibrate(200);}catch(e){}
-          sDead();
-        }
-      }
-    }
-  }
-  for(const c of coins)if(circleRectHit(c,hb)){
-    c.taken=true;
-    if(c.kind==='item'){
-      if(c.itemType==='shield'){shield=true;floatTxt(c.x,c.y-20,'🛡 GET!','#7fd4ff',true);}
-      else{magnetT=300;floatTxt(c.x,c.y-20,'🧲 GET!','#ff9ff3',true);}
-      spark(c.x,c.y,14,'#9fd4ff');
-      sItem();
-      continue;
-    }
-    coinsGot+=c.val;
-    combo++;comboMax=Math.max(comboMax,combo);comboFlash=1;
-    const mult=1+Math.min(4,Math.floor(combo/5));
-    score+=c.val*PT*mult;
-    spark(c.x,c.y,c.rare?16:10,c.rare?'#ffd76a':'#ff88aa');
-    floatTxt(c.x,c.y-18,'+'+c.val,c.rare?'#ffd76a':'#fff',c.rare);
-    if(combo%5===0)floatTxt(player.x+20,player.y-34,'COMBO x'+mult+'!','#ffaa33',true);
-    c.rare?sRare():sCombo(combo);
-  }
-}
-
-function rr(x,y,w,h,r){
-  ctx.beginPath();
-  ctx.moveTo(x+r,y);
-  ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);
-  ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);
-  ctx.closePath();
-}
-function drawGold(c){
-  ctx.save();ctx.shadowColor='#ffd76a';ctx.shadowBlur=12;
-  ctx.fillStyle='#ffcf3f';ctx.beginPath();ctx.arc(c.x,c.y,c.r,0,Math.PI*2);ctx.fill();
-  ctx.shadowBlur=0;ctx.strokeStyle='#d9a416';ctx.lineWidth=3;ctx.stroke();ctx.restore();
-}
-function drawBat(o){
-  for(let i=0;i<o.bats.length;i++){
-    const bt=o.bats[i];
-    const flap=Math.sin(frame*.4+i*2.1+o.x*.05)*8;
-    const cx=o.x+bt.dx+23,cy=o.y+bt.dy+15;
-    ctx.fillStyle='#17a2ae';   // 青翅膀
-    ctx.beginPath();ctx.moveTo(cx-6,cy);ctx.quadraticCurveTo(cx-26,cy-10-flap,cx-30,cy+4-flap);
-    ctx.quadraticCurveTo(cx-18,cy+6,cx-6,cy+6);ctx.closePath();ctx.fill();
-    ctx.beginPath();ctx.moveTo(cx+6,cy);ctx.quadraticCurveTo(cx+26,cy-10-flap,cx+30,cy+4-flap);
-    ctx.quadraticCurveTo(cx+18,cy+6,cx+6,cy+6);ctx.closePath();ctx.fill();
-    ctx.fillStyle='#2ec4c6';   // 青身體
-    ctx.beginPath();ctx.ellipse(cx,cy,8,10,0,0,7);ctx.fill();
-    ctx.beginPath();ctx.moveTo(cx-6,cy-8);ctx.lineTo(cx-9,cy-16);ctx.lineTo(cx-2,cy-10);ctx.closePath();ctx.fill();
-    ctx.beginPath();ctx.moveTo(cx+6,cy-8);ctx.lineTo(cx+9,cy-16);ctx.lineTo(cx+2,cy-10);ctx.closePath();ctx.fill();
-    ctx.fillStyle='#083a3d';
-    ctx.beginPath();ctx.arc(cx-3,cy-3,1.8,0,7);ctx.fill();
-    ctx.beginPath();ctx.arc(cx+3,cy-3,1.8,0,7);ctx.fill();
-  }
-}
-function drawPlayer(){
-  const p=player;
-  const bounce=(p.onGround&&started&&!gameOver)?-Math.abs(Math.sin(runPhase*Math.PI/6))*2.5:0;
-  const x=p.x,y=p.y+bounce,leg=Math.sin(runPhase)*8;
-  const airH=GROUND_Y-(p.y+p.h);
-  ctx.fillStyle='rgba(0,0,0,.35)';
-  ctx.beginPath();ctx.ellipse(p.x+p.w/2,GROUND_Y+8,Math.max(10,26-airH*.12),5,0,0,7);ctx.fill();
-  ctx.save();
-  let sy=1-squash,sx=1+squash;
-  if(slideTimer>0){sy*=.55;sx*=1.3;}
-  ctx.translate(p.x+p.w/2,p.y+p.h);ctx.scale(sx,sy);ctx.translate(-(p.x+p.w/2),-(p.y+p.h));
-  ctx.strokeStyle='#c62828';ctx.lineWidth=6;ctx.lineCap='round';
-  ctx.beginPath();ctx.moveTo(x+14,y+p.h-6);ctx.lineTo(x+14+leg,y+p.h+2);ctx.stroke();
-  ctx.beginPath();ctx.moveTo(x+26,y+p.h-6);ctx.lineTo(x+26-leg,y+p.h+2);ctx.stroke();
-  ctx.strokeStyle='#e53935';ctx.lineWidth=5;
-  ctx.beginPath();ctx.moveTo(x+10,y+20);ctx.lineTo(x+6,y+30);ctx.stroke();
-  ctx.beginPath();ctx.moveTo(x+30,y+20);ctx.lineTo(x+34,y+30);ctx.stroke();
-  ctx.fillStyle='#e53935';rr(x+4,y+16,32,26,8);ctx.fill();
-  ctx.fillStyle='#ffd54f';ctx.fillRect(x+4,y+25,32,5);
-  ctx.fillStyle='#ffe0c2';ctx.beginPath();ctx.arc(x+20,y+10,12,0,Math.PI*2);ctx.fill();
-  ctx.fillStyle='#333';
-  ctx.beginPath();ctx.arc(x+23,y+8,1.8,0,Math.PI*2);ctx.fill();
-  ctx.beginPath();ctx.arc(x+28,y+8,1.8,0,Math.PI*2);ctx.fill();
-  ctx.restore();
-}
-function overlay(t1,t2){
-  ctx.fillStyle='rgba(0,0,0,.45)';ctx.fillRect(0,0,W,H);
-  ctx.fillStyle='#fff';ctx.textAlign='center';ctx.textBaseline='middle';
-  ctx.font='bold 42px sans-serif';ctx.fillText(t1,W/2,H/2-24);
-  ctx.font='20px sans-serif';ctx.fillText(t2,W/2,H/2+22);
-  ctx.textAlign='left';
-}
-
-function draw(){
-  ctx.save();
-  if(shake>0)ctx.translate((Math.random()-.5)*shake,(Math.random()-.5)*shake);
-
-  ctx.fillStyle='#04060c';ctx.fillRect(0,0,W,BAND_TOP);
-  const bands=['#2a1826','#1e2d2d','#205052','#2a6b6d'];
-  for(let i=0;i<4;i++){
-    ctx.fillStyle=bands[i];
-    ctx.fillRect(0,BAND_TOP+(GROUND_Y-BAND_TOP)*i/4,W,(GROUND_Y-BAND_TOP)/4+1);
-  }
-  for(const st of stars){
-    const tw=.5+.5*Math.sin(frame*.06+st.ph);
-    ctx.globalAlpha=.3+.7*tw;
-    ctx.fillStyle='#5bc6ff';
-    ctx.fillRect(st.x-st.s*2,st.y,st.s*4,1);
-    ctx.fillRect(st.x,st.y-st.s*2,1,st.s*4);
-    ctx.fillRect(st.x-1,st.y-st.s,3,st.s*2);
-    ctx.fillRect(st.x-st.s,st.y-1,st.s*2,3);
-    ctx.globalAlpha=1;
-  }
-  drawLayer(farLayer,farOff);
-  drawLayer(midLayer,midOff);
-  ctx.fillStyle='#050808';ctx.fillRect(0,GROUND_Y,W,H-GROUND_Y);
-  drawLayer(groundLayer,groundOff);
-
-  for(const o of obstacles){
-    if(o.type==='trap'&&o.img.ok&&o.img.tex){
-      const tex=o.img.tex;
-      const h=o.h+6,w=h*(tex.width/tex.height||1);
-      ctx.drawImage(tex,o.x+o.w/2-w/2,o.y+o.h-h,w,h);
-    }else if(o.type==='bat'){
-      drawBat(o);
-    }else if(o.type==='box'){
-      ctx.fillStyle='#a56a3a';rr(o.x,o.y,o.w,o.h,6);ctx.fill();
-      ctx.strokeStyle='#6b3f1d';ctx.lineWidth=3;ctx.stroke();
-    }else{
-      ctx.fillStyle='#e04444';
-      for(let i=0;i<3;i++){
-        const sx=o.x+i*15;
-        ctx.beginPath();ctx.moveTo(sx,o.y+o.h);ctx.lineTo(sx+7.5,o.y);ctx.lineTo(sx+15,o.y+o.h);ctx.closePath();ctx.fill();
-      }
-    }
-  }
-  for(const c of coins){
-    if(c.kind==='item'){
-      const pul=1+Math.sin(frame*.2)*.15;
-      ctx.font=Math.round(30*pul)+'px sans-serif';
-      ctx.textAlign='center';ctx.textBaseline='middle';
-      ctx.fillText(c.itemType==='shield'?'🛡':'🧲',c.x,c.y);
-      ctx.textAlign='left';
-    }else if(c.coin){
-      if(coinIcon.ok&&coinIcon.tex){
-        const tex=coinIcon.tex,s=c.r*2.2,w=s*(tex.width/tex.height||1);
-        ctx.drawImage(tex,c.x-w/2,c.y-s/2,w,s);
-      }else drawGold(c);
-    }else if(c.img&&c.img.ok&&c.img.tex){
-      const tex=c.img.tex;
-      const freq=c.rare?.5:.15,amp=c.rare?.18:.08;
-      const s=c.r*2.3*(1+Math.sin(frame*freq+c.x*.05)*amp);
-      const w=s*(tex.width/tex.height||1);
-      ctx.drawImage(tex,c.x-w/2,c.y-s/2,w,s);
-    }else drawGold(c);
-  }
-  if(!drawSprite())drawPlayer();
-  /* 護盾泡泡／磁鐵標示 */
-  if(shield){
-    ctx.strokeStyle='rgba(127,212,255,.75)';ctx.lineWidth=3;
-    ctx.beginPath();ctx.arc(player.x+20,player.y+player.h/2,36+Math.sin(frame*.2)*3,0,7);ctx.stroke();
-  }
-  if(magnetT>0){
-    ctx.font='20px sans-serif';ctx.textAlign='center';
-    ctx.fillText('🧲',player.x+20,player.y-16);
-    ctx.textAlign='left';
-  }
-  drawFX();
-  ctx.restore();
-
-  if(flash>0){ctx.fillStyle='rgba(255,255,255,'+flash.toFixed(3)+')';ctx.fillRect(0,0,W,H);}
-
-  /* 分數面板（自動寬度） */
-  const icon=(coinIcon.ok&&coinIcon.tex)?coinIcon:heartImgs.find(i=>i.ok&&i.tex);
-  ctx.font='bold 22px sans-serif';ctx.textBaseline='middle';
-  const sTxt='Score: '+Math.floor(score);
-  const cTxt=icon?('× '+coinsGot):('Coins: '+coinsGot);
-  const bTxt='Best: '+best;
-  const w1=ctx.measureText(sTxt).width;
-  const w3=ctx.measureText(cTxt).width;
-  const w4=ctx.measureText(bTxt).width;
-  const iw=icon?24*(icon.tex.width/icon.tex.height||1):0;
-  const x2=30+w1+18,x3=x2+iw+6,x4=x3+w3+18;
-  ctx.fillStyle='rgba(255,255,255,.75)';rr(15,15,x4+w4,44,10);ctx.fill();
-  ctx.fillStyle='#222';
-  ctx.fillText(sTxt,30,38);
-  if(icon)ctx.drawImage(icon.tex,x2,26,iw,24);
-  ctx.fillText(cTxt,x3,38);
-  ctx.fillText(bTxt,x4,38);
-  ctx.font='22px sans-serif';
-  ctx.fillText(bgmOn?'🔊':'',W-42,30);
-
-  if(combo>=2){
-    const pulse=1+comboFlash*.4;
-    ctx.font='bold '+Math.round(26*pulse)+'px sans-serif';
-    ctx.textAlign='center';ctx.textBaseline='middle';
-    ctx.fillStyle='#ffaa33';
-    const mult=1+Math.min(4,Math.floor(combo/5));
-    ctx.fillText('COMBO ×'+combo+(mult>1?'  (x'+mult+')':''),W/2,72);
-    ctx.textAlign='left';
-  }
-
-  if(!started)overlay('🏃 Undet Bu-Dou Tale','跳：空白/↑/點畫面｜滑：↓/S/雙指｜二段跳可｜M 音樂');
-  else if(gameOver)overlay('💥 遊戲結束',
-    (newRec?'🎉 新紀錄！ ':'')+`分數 ${Math.floor(score)}｜紅心 ${coinsGot}｜最大連擊 ${comboMax}｜最高 ${best} — 點擊重新開始`);
-}
-(function loop(){update();draw();requestAnimationFrame(loop);})();
-</script>
-</body>
-</html>
+function tri(g,cx,by,w,h){
