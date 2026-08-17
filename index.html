@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>奔跑小人 - 跑酷網頁遊戲</title>
+<title>UT Bu Dou - 跑酷網頁遊戲</title>
 <style>
   html,body{margin:0;height:100%;background:#04060c;display:flex;align-items:center;justify-content:center;
     touch-action:none;user-select:none;-webkit-user-select:none;overscroll-behavior:none;}
@@ -680,7 +680,7 @@ function overlay(t1,t2){
 
 /* ============ 分享成績卡 ============ */
 function shareText(){
-  return `我在《奔跑小人》跑了 ${Math.floor(score)} 分！紅心 ×${coinsGot}、最大連擊 ${comboMax}，最高紀錄 ${best}——來挑戰我！`;
+  return `我在《UT Bu Dou》跑了 ${Math.floor(score)} 分！紅心 ×${coinsGot}、最大連擊 ${comboMax}，最高紀錄 ${best}——來挑戰我！`;
 }
 function makeCard(){
   const c=document.createElement('canvas');c.width=640;c.height=400;
@@ -695,7 +695,7 @@ function makeCard(){
   }
   g.textAlign='center';g.textBaseline='middle';
   g.fillStyle='#fff';g.font='bold 32px sans-serif';
-  g.fillText('🏃 奔跑小人 · 成績卡',320,52);
+  g.fillText('🏃 UT Bu Dou · 成績卡',320,52);
   g.fillStyle='#ffd76a';g.font='bold 62px sans-serif';
   g.fillText(Math.floor(score)+' 分',320,130);
   g.fillStyle='#cfe8ea';g.font='24px sans-serif';
@@ -717,7 +717,7 @@ function shareCard(){
   c.toBlob(async blob=>{
     const file=new File([blob],'runner-score.png',{type:'image/png'});
     if(navigator.canShare&&navigator.canShare({files:[file]})){
-      try{await navigator.share({files:[file],title:'奔跑小人',text:shareText()});return;}catch(e){}
+      try{await navigator.share({files:[file],title:'UT Bu Dou',text:shareText()});return;}catch(e){}
     }
     const a=document.createElement('a');
     a.href=URL.createObjectURL(blob);
@@ -835,7 +835,7 @@ function draw(){
     ctx.textAlign='left';
   }
 
-  if(!started)overlay('🏃 奔跑小人','跳：空白/↑/點畫面｜滑：↓/S/雙指｜二段跳可｜M 音樂');
+  if(!started)overlay('🏃 UT Bu Dou','跳：空白/↑/點畫面｜滑：↓/S/雙指｜二段跳可｜M 音樂');
   else if(gameOver){
     overlay('💥 遊戲結束',
       (newRec?'🎉 新紀錄！ ':'')+`分數 ${Math.floor(score)}｜紅心 ${coinsGot}｜最大連擊 ${comboMax}｜最高 ${best}`);
