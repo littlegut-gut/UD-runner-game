@@ -17,8 +17,8 @@
 const canvas=document.getElementById('game'),ctx=canvas.getContext('2d');
 const W=canvas.width,H=canvas.height,GROUND_Y=H-60,BAND_TOP=Math.round(H*.7);
 const PT=10;
-const SPEED_BASE=5,SPEED_STEP=0.5,SPEED_EVERY=250,PX_PER_M=10,MAX_SPEED=12;
-const AWARD_EVERY=1000,SLIDE_TIME=32;
+const SPEED_BASE=5,SPEED_STEP=0.5,SPEED_EVERY=250,PX_PER_M=10,MAX_SPEED=16; // 上限16：可視0.81s仍大於反應時間
+const AWARD_EVERY=500,SLIDE_TIME=32;   // 每500米獎勵關
 
 /* ============ 音效 ============ */
 let AC=null;
@@ -454,29 +454,31 @@ document.addEventListener('pointerdown',e=>{
 
 function spawn(){
   let ox=W+50,ow=57,oh=57;
-  /* 獎勵關：Award＋隨機三金幣＋60% 掉道具 */
+  /* 獎勵關：每500米；500m→2金幣、1000m→3金幣；Award放大40%；不混道具 */
   if(dist/PX_PER_M>=nextAwardM){
+    const m=nextAwardM;
     nextAwardM=dist/PX_PER_M+AWARD_EVERY+Math.random()*100;
     const okAw=awImgs.filter(i=>i.ok&&i.tex);
     if(okAw.length){
       const t=okAw[(Math.random()*okAw.length)|0];
-      obstacles.push({type:'trap',img:t,x:ox,y:GROUND_Y-oh,w:ow,h:oh});
-      const base=110+Math.random()*40,gap=30+Math.random()*10,off=Math.random()*40-20;
-      for(let k=-1;k<=1;k++)
-        coins.push({x:ox+ow/2+off+k*gap,y:GROUND_Y-(k===0?base+25:base),r:10+Math.random()*5,taken:false,val:1,rare:false,img:null,coin:true});
-      if(Math.random()<.6)
-        coins.push({x:ox+ow+90,y:GROUND_Y-130,r:14,taken:false,val:0,rare:false,img:null,kind:'item',itemType:Math.random()<.5?'shield':'magnet'});
+      const aw=Math.round(57*1.4);
+      obstacles.push({type:'trap',img:t,x:ox,y:GROUND_Y-aw,w:aw,h:aw});
+      const n=(Math.round(m/500)%2===0)?3:2;   // 1000的倍數→3顆
+      const base=110+Math.random()*40,gap=30+Math.random()*10;
+      for(let k=0;k<n;k++)
+        coins.push({x:ox+aw/2+(k-(n-1)/2)*gap,y:GROUND_Y-(n===3&&k===1?base+25:base),
+          r:10+Math.random()*5,taken:false,val:1,rare:false,img:null,coin:true});
       sAward();
       return;
     }
   }
-  /* 飛行蝙蝠 22%（要下滑！不配心） */
+  /* 飛行蝙蝠（只能滑） */
   if(Math.random()<.22){
-    /* 三隻青蝙蝠：低/中/高錯開 → 跳必撞，只能滑 */
     obstacles.push({type:'bat',x:W+50,y:GROUND_Y-62,w:90,h:130,
       bats:[{dx:10,dy:0},{dx:44,dy:-45},{dx:2,dy:-90}]});
     return;
   }
+  /* 一般障礙 */
   const okTraps=trapImgs.filter(t=>t.ok&&t.tex);
   if(okTraps.length){
     const t=okTraps[(Math.random()*okTraps.length)|0];
@@ -488,19 +490,24 @@ function spawn(){
     ow=45;oh=30;
     obstacles.push({type:'spike',x:ox,y:GROUND_Y-oh,w:ow,h:oh});
   }
-  const c={
-    x:ox+ow/2+(Math.random()*60-30),
-    y:GROUND_Y-(100+Math.random()*75),
-    r:10+Math.random()*5,
-    taken:false,val:1,rare:false,img:null
-  };
-  const okH=heartImgs.filter(i=>i.ok&&i.tex);
-  if(okH.length){
-    const t=okH[(Math.random()*okH.length)|0];
-    c.img=t;c.val=t.val;c.rare=t.rare;
+  /* 障礙上方「只有一種」 pickup：心70% / 護盾15% / 磁鐵15% */
+  const px=ox+ow/2+(Math.random()*60-30),py=GROUND_Y-(100+Math.random()*60);
+  const roll=Math.random();
+  if(roll<.15){
+    coins.push({x:px,y:py,r:14,taken:false,val:0,rare:false,img:null,kind:'item',itemType:'shield'});
+  }else if(roll<.30){
+    coins.push({x:px,y:py,r:14,taken:false,val:0,rare:false,img:null,kind:'item',itemType:'magnet'});
+  }else{
+    const c={x:px,y:py,r:10+Math.random()*5,taken:false,val:1,rare:false,img:null};
+    const okH=heartImgs.filter(i=>i.ok&&i.tex);
+    if(okH.length){
+      const t=okH[(Math.random()*okH.length)|0];
+      c.img=t;c.val=t.val;c.rare=t.rare;
+    }
+    coins.push(c);
   }
-  coins.push(c);
 }
+
 function rectHit(a,b){return a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y;}
 function circleRectHit(c,r){
   const cx=Math.max(r.x,Math.min(c.x,r.x+r.w)),cy=Math.max(r.y,Math.min(c.y,r.y+r.h));
