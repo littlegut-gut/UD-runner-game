@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>UD Bu Dou - 跑酷網頁遊戲</title>
+<title>奔跑小人 - 跑酷網頁遊戲</title>
 <style>
   html,body{margin:0;height:100%;background:#04060c;display:flex;align-items:center;justify-content:center;
     touch-action:none;user-select:none;-webkit-user-select:none;overscroll-behavior:none;}
@@ -46,7 +46,7 @@ const sCombo=n=>{const f=800+Math.min(n,12)*50;beep(f,.07,'sine',.2);setTimeout(
 const sItem=()=>[520,780,1040].forEach((f,i)=>setTimeout(()=>beep(f,.1,'triangle',.22),i*80));
 const sShield=()=>beep(180,.25,'square',.25,90);
 
-/* ============ BGM：bgm.mp3 優先，缺檔回合成 ============ */
+/* ============ BGM ============ */
 let bgmOn=true,bgmTimer=null,bgmStarted=false;
 const bgmAudio=new Audio('bgm.mp3');
 bgmAudio.loop=true;bgmAudio.volume=.35;bgmAudio.preload='auto';
@@ -366,7 +366,7 @@ function statue(g,x,by,s){
   g.beginPath();g.moveTo(x-8*s,by-74*s);g.quadraticCurveTo(x-22*s,by-84*s,x-20*s,by-102*s);
   g.quadraticCurveTo(x-12*s,by-88*s,x-2*s,by-82*s);g.closePath();g.fill();
   g.beginPath();g.moveTo(x+8*s,by-74*s);g.quadraticCurveTo(x+22*s,by-84*s,x+20*s,by-102*s);
-  g.quadraticCurveTo(x+12*s,by-88*s,x+2*s,by-82*s);g.closePath();g.fill();
+  g.quadraticCurveTo(x+12*s,by-88*s,x+2*s,by-82)s;g.closePath();g.fill();
 }
 function figure(g,x,by,s,t){
   g.save();g.translate(x,by);g.scale(s,s);
@@ -416,6 +416,7 @@ function drawLayer(img,off){
 /* ============ 遊戲本體 ============ */
 let player,obstacles,coins,speed,score,coinsGot,gameOver,started,gapPx,lastType,frame,farOff,midOff,groundOff,dist,nextAwardM,runPhase,lastStep,combo,comboMax,comboFlash;
 let shield,magnetT,slideTimer,pendingSlide,jumps;
+let clusterStreak=0,clusterNext=false,lastHeart=null;
 function reset(){
   player={x:120,y:GROUND_Y-50,w:40,h:50,vy:0,onGround:true};
   obstacles=[];coins=[];
@@ -423,6 +424,7 @@ function reset(){
   farOff=0;midOff=0;groundOff=0;dist=0;nextAwardM=AWARD_EVERY;newRec=false;
   runPhase=0;lastStep=0;combo=0;comboMax=0;comboFlash=0;
   shield=false;magnetT=0;slideTimer=0;pendingSlide=false;jumps=0;
+  clusterStreak=0;clusterNext=false;lastHeart=null;
 }
 reset();
 
@@ -465,14 +467,24 @@ document.addEventListener('pointerdown',e=>{
   jump();
 });
 
-/* 間距規則：密集組(≤0.7跳距)或喘息組(≥1.2跳距+反應)，蝙蝠永不密集且前後加反應 */
+/* 間距規則：密集＝最多2陷阱總寬≤0.8跳距；蝙蝠前後≥1.5跳距+反應；其餘≥1.25跳距 */
 function nextGap(prev,cur){
   const jumpD=37*speed;
   const bat=prev==='bat'||cur==='bat';
-  if(!bat&&Math.random()<Math.min(.6,.1+speed*.03))
-    return Math.max(120,jumpD*(.45+Math.random()*.25));
-  const t=Math.max(.6,1.15-speed*.035)+(bat?.35:0);
-  return Math.max(jumpD*1.2,speed*60*t)+Math.random()*120;
+  const tBase=Math.max(.65,1.2-speed*.035);
+  if(bat){
+    clusterNext=false;
+    return Math.max(jumpD*1.5,speed*60*(tBase+.45))+Math.random()*100;
+  }
+  const maxCluster=0.8*jumpD-120;
+  if(clusterStreak<1&&maxCluster>=70&&Math.random()<Math.min(.6,.1+speed*.03)){
+    clusterStreak++;
+    clusterNext=true;
+    if(lastHeart)lastHeart.optional=true;
+    return Math.min(10+Math.random()*30,maxCluster);
+  }
+  clusterStreak=0;clusterNext=false;
+  return Math.max(jumpD*1.25,speed*60*tBase)+Math.random()*120;
 }
 
 function spawn(){
@@ -524,13 +536,14 @@ function spawn(){
   }else if(roll<.14){
     coins.push({x:px,y:py,r:14,taken:false,val:0,rare:false,img:null,kind:'item',itemType:'magnet'});
   }else{
-    const c={x:px,y:py,r:10+Math.random()*5,taken:false,val:1,rare:false,img:null};
+    const c={x:px,y:py,r:10+Math.random()*5,taken:false,val:1,rare:false,img:null,optional:clusterNext};
     const okH=heartImgs.filter(i=>i.ok&&i.tex);
     if(okH.length){
       const t=okH[(Math.random()*okH.length)|0];
       c.img=t;c.val=t.val;c.rare=t.rare;
     }
     coins.push(c);
+    lastHeart=c;
   }
 }
 function rectHit(a,b){return a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y;}
@@ -582,7 +595,7 @@ function update(){
     for(const c of coins)if(!c.taken){c.x+=(player.x+20-c.x)*.1;c.y+=(player.y+10-c.y)*.1;}
   }
   let missed=false;
-  for(const c of coins)if(!c.taken&&c.kind!=='item'&&c.x+c.r<0)missed=true;
+  for(const c of coins)if(!c.taken&&c.kind!=='item'&&!c.optional&&c.x+c.r<0)missed=true;
   if(missed&&combo>0){combo=0;floatTxt(player.x+20,player.y-30,'COMBO LOST','#9fb3b8',false);}
   coins=coins.filter(c=>!c.taken&&c.x>-60);
   const hb={x:player.x+6,y:player.y+4,w:player.w-12,h:player.h-8};
@@ -698,7 +711,7 @@ function overlay(t1,t2){
 
 /* ============ 分享成績卡 ============ */
 function shareText(){
-  return `我在《UT Bu Dou》跑了 ${Math.floor(score)} 分！紅心 ×${coinsGot}、最大連擊 ${comboMax}，最高紀錄 ${best}——來挑戰我！`;
+  return `我在《奔跑小人》跑了 ${Math.floor(score)} 分！紅心 ×${coinsGot}、最大連擊 ${comboMax}，最高紀錄 ${best}——來挑戰我！`;
 }
 function makeCard(){
   const c=document.createElement('canvas');c.width=640;c.height=400;
@@ -794,7 +807,7 @@ function draw(){
       const pul=1+Math.sin(frame*.2)*.15;
       ctx.font=Math.round(30*pul)+'px sans-serif';
       ctx.textAlign='center';ctx.textBaseline='middle';
-      ctx.fillText(c.itemType==='shield'?'🛡':'🧲',c.x,c.y);
+      ctx.fillText(c.itemType==='shield'?'🛡':'',c.x,c.y);
       ctx.textAlign='left';
     }else if(c.coin){
       if(coinIcon.ok&&coinIcon.tex){
@@ -853,7 +866,7 @@ function draw(){
     ctx.textAlign='left';
   }
 
-  if(!started)overlay('🏃 UT Bu Dou','跳：空白/↑/點畫面｜滑：↓/S/雙指｜二段跳可｜M 音樂');
+  if(!started)overlay('🏃 奔跑小人','跳：空白/↑/點畫面｜滑：↓/S/雙指｜二段跳可｜M 音樂');
   else if(gameOver){
     overlay('💥 遊戲結束',
       (newRec?'🎉 新紀錄！ ':'')+`分數 ${Math.floor(score)}｜紅心 ${coinsGot}｜最大連擊 ${comboMax}｜最高 ${best}`);
