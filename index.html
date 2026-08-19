@@ -503,9 +503,9 @@ function spawn(){
   }
   const px=ox+ow/2+(Math.random()*60-30),py=GROUND_Y-(100+Math.random()*60);
   const roll=Math.random();
-  if(roll<.15){
+  if(roll<.07){
     coins.push({x:px,y:py,r:14,taken:false,val:0,rare:false,img:null,kind:'item',itemType:'shield'});
-  }else if(roll<.30){
+  }else if(roll<.14){
     coins.push({x:px,y:py,r:14,taken:false,val:0,rare:false,img:null,kind:'item',itemType:'magnet'});
   }else{
     const c={x:px,y:py,r:10+Math.random()*5,taken:false,val:1,rare:false,img:null};
@@ -554,7 +554,8 @@ function update(){
   }
   if(--spawnTimer<=0){
     spawn();
-    spawnTimer=55+Math.random()*45;
+    /* 間距隨機、隨速度變短；上限不超原本100幀、下限45幀保反應 */
+    spawnTimer=Math.max(45,70-speed*2)+Math.random()*Math.max(15,45-speed*2);
   }
   for(const o of obstacles)o.x-=speed;
   obstacles=obstacles.filter(o=>o.x+o.w>-60);
