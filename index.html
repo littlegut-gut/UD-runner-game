@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>奔跑小人 - 跑酷網頁遊戲</title>
+<title>UT Bu Dou - 跑酷網頁遊戲</title>
 <style>
   html,body{margin:0;height:100%;background:#04060c;display:flex;align-items:center;justify-content:center;
     touch-action:none;user-select:none;-webkit-user-select:none;overscroll-behavior:none;}
@@ -476,7 +476,7 @@ function nextGap(prev,cur){
     clusterNext=false;
     return Math.max(jumpD*1.5,speed*60*(tBase+.45))+Math.random()*100;
   }
-  const maxCluster=0.8*jumpD-120;
+  const maxCluster=1.0*jumpD-120;
   if(clusterStreak<1&&maxCluster>=70&&Math.random()<Math.min(.6,.1+speed*.03)){
     clusterStreak++;
     clusterNext=true;
@@ -484,7 +484,7 @@ function nextGap(prev,cur){
     return Math.min(10+Math.random()*30,maxCluster);
   }
   clusterStreak=0;clusterNext=false;
-  return Math.max(jumpD*1.25,speed*60*tBase)+Math.random()*120;
+  return Math.max(jumpD*1.20,speed*60*tBase)+Math.random()*120;
 }
 
 function spawn(){
@@ -866,7 +866,7 @@ function draw(){
     ctx.textAlign='left';
   }
 
-  if(!started)overlay('🏃 奔跑小人','跳：空白/↑/點畫面｜滑：↓/S/雙指｜二段跳可｜M 音樂');
+  if(!started)overlay('🏃 UT Bu Dou','跳：空白/↑/點畫面｜滑：↓/S/雙指｜二段跳可｜M 音樂');
   else if(gameOver){
     overlay('💥 遊戲結束',
       (newRec?'🎉 新紀錄！ ':'')+`分數 ${Math.floor(score)}｜紅心 ${coinsGot}｜最大連擊 ${comboMax}｜最高 ${best}`);
