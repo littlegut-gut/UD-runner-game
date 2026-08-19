@@ -416,7 +416,7 @@ let shield,magnetT,slideTimer,pendingSlide,jumps;
 function reset(){
   player={x:120,y:GROUND_Y-50,w:40,h:50,vy:0,onGround:true};
   obstacles=[];coins=[];
-  speed=SPEED_BASE;score=0;coinsGot=0;gameOver=false;started=false;spawnTimer=70;frame=0;
+  speed=SPEED_BASE;score=0;coinsGot=0;gameOver=false;started=false;gapPx=300;frame=0;
   farOff=0;midOff=0;groundOff=0;dist=0;nextAwardM=AWARD_EVERY;newRec=false;
   runPhase=0;lastStep=0;combo=0;comboMax=0;comboFlash=0;
   shield=false;magnetT=0;slideTimer=0;pendingSlide=false;jumps=0;
@@ -461,6 +461,16 @@ document.addEventListener('pointerdown',e=>{
   if(!e.isPrimary){slide();return;}
   jump();
 });
+
+/* 陷阱間距：高速→密集組變多（距離短、一跳收多個）；組間喘息隨速度縮短 */
+function nextGap(){
+  const jumpD=37*speed;   // 一次跳躍的水平距離
+  if(Math.random()<Math.min(.6,.1+speed*.04)){
+    return Math.max(120,jumpD*(.45+Math.random()*.25));        // 密集組：畫面距離短
+  }
+  const t=Math.max(.55,1.2-speed*.04);                          // 喘息反應時間：1.0s→0.56s
+  return Math.max(jumpD*1.2,speed*60*t)+Math.random()*150;      // 保證跳得過、反應得來
+}
 
 function spawn(){
   let ox=W+50,ow=57,oh=57;
@@ -552,10 +562,10 @@ function update(){
     if(frame%4===0)puff(player.x+6,GROUND_Y,2,'#9fb3b8',1.5,.5);
     if(slideTimer===0&&player.onGround){player.h=50;player.y=GROUND_Y-50;}
   }
-  if(--spawnTimer<=0){
+  gapPx-=speed;
+  if(gapPx<=0){
     spawn();
-    /* 間距隨機、隨速度變短；上限不超原本100幀、下限45幀保反應 */
-    spawnTimer=Math.max(45,70-speed*2)+Math.random()*Math.max(15,45-speed*2);
+    gapPx=nextGap();
   }
   for(const o of obstacles)o.x-=speed;
   obstacles=obstacles.filter(o=>o.x+o.w>-60);
